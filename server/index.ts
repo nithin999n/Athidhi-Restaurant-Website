@@ -3,9 +3,18 @@ import cors from 'cors';
 import { loadData, saveData, getDataFilePath, clearAllData, backupData } from './storage';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// CORS configuration for production
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://athidhi-restaurant-website.onrender.com',
+    'https://athidhi.food',
+    'https://www.athidhi.food'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Load data from file on startup
