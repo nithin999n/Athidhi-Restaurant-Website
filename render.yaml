@@ -1,0 +1,27 @@
+services:
+  # Backend API Server
+  - type: web
+    name: athidhi-restaurant-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    
+  # Frontend Static Site
+  - type: web
+    name: athidhi-restaurant-frontend
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
