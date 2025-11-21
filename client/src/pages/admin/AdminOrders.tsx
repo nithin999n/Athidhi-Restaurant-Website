@@ -29,7 +29,7 @@ export default function AdminOrders() {
 
   const updateOrderStatus = async (id: number, status: string) => {
     try {
-      await fetch(`/api/orders/₹{id}`, {
+      await fetch(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -64,7 +64,7 @@ export default function AdminOrders() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-semibold transition ₹{
+              className={`px-4 py-2 rounded-lg font-semibold transition ${
                 filter === status
                   ? 'bg-primary-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -92,7 +92,7 @@ export default function AdminOrders() {
                     {new Date(order.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full font-semibold ₹{getStatusColor(order.status)}`}>
+                <span className={`px-4 py-2 rounded-full font-semibold ${getStatusColor(order.status)}`}>
                   {order.status.toUpperCase()}
                 </span>
               </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ShoppingBag, Calendar, Menu, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import { Link } from 'wouter';
+import { ShoppingBag, Calendar, Menu, TrendingUp, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -89,9 +90,9 @@ export default function AdminDashboard() {
             <div>
               <p className="font-semibold text-yellow-800">Action Required!</p>
               <p className="text-sm text-yellow-700">
-                {stats.pendingOrders > 0 && `₹{stats.pendingOrders} pending order(s) `}
+                {stats.pendingOrders > 0 && `${stats.pendingOrders} pending order(s) `}
                 {stats.pendingOrders > 0 && stats.pendingReservations > 0 && 'and '}
-                {stats.pendingReservations > 0 && `₹{stats.pendingReservations} pending reservation(s)`}
+                {stats.pendingReservations > 0 && `${stats.pendingReservations} pending reservation(s)`}
               </p>
             </div>
           </div>
@@ -102,22 +103,30 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <a href="/admin/orders" className="block p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
-              <h3 className="font-semibold text-blue-900">Manage Orders</h3>
-              <p className="text-sm text-blue-700">View and update order status</p>
-            </a>
-            <a href="/admin/reservations" className="block p-4 bg-green-50 hover:bg-green-100 rounded-lg transition">
-              <h3 className="font-semibold text-green-900">Manage Reservations</h3>
-              <p className="text-sm text-green-700">Confirm or cancel table bookings</p>
-            </a>
-            <a href="/admin/menu" className="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
-              <h3 className="font-semibold text-purple-900">Update Menu</h3>
-              <p className="text-sm text-purple-700">Add, edit, or remove menu items</p>
-            </a>
-            <a href="/admin/tables" className="block p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition">
-              <h3 className="font-semibold text-orange-900">Configure Tables</h3>
-              <p className="text-sm text-orange-700">Manage table availability</p>
-            </a>
+            <Link href="/admin/orders">
+              <a className="block p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+                <h3 className="font-semibold text-blue-900">Manage Orders</h3>
+                <p className="text-sm text-blue-700">View and update order status</p>
+              </a>
+            </Link>
+            <Link href="/admin/reservations">
+              <a className="block p-4 bg-green-50 hover:bg-green-100 rounded-lg transition">
+                <h3 className="font-semibold text-green-900">Manage Reservations</h3>
+                <p className="text-sm text-green-700">Confirm or cancel table bookings</p>
+              </a>
+            </Link>
+            <Link href="/admin/menu">
+              <a className="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
+                <h3 className="font-semibold text-purple-900">Update Menu</h3>
+                <p className="text-sm text-purple-700">Add, edit, or remove menu items</p>
+              </a>
+            </Link>
+            <Link href="/admin/tables">
+              <a className="block p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition">
+                <h3 className="font-semibold text-orange-900">Configure Tables</h3>
+                <p className="text-sm text-orange-700">Manage table availability</p>
+              </a>
+            </Link>
           </div>
         </div>
 
@@ -134,7 +143,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Database:</span>
-              <span className="font-semibold">In-Memory (Development)</span>
+              <span className="font-semibold">PostgreSQL</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Last Updated:</span>
@@ -153,64 +162,78 @@ export default function AdminDashboard() {
       {/* Recent Activity */}
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold mb-4">Recent Orders</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Recent Orders</h2>
+            <Link href="/admin/orders">
+              <a className="text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1">
+                View All <ArrowRight size={16} />
+              </a>
+            </Link>
+          </div>
+
           {recentOrders.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No orders yet</p>
+            <p className="text-gray-500 text-center py-8">No recent orders</p>
           ) : (
-            <div className="space-y-3">
-              {recentOrders.map((order: any) => (
-                <div key={order.id} className="border-l-4 border-blue-500 bg-gray-50 p-3 rounded">
+            <div className="space-y-4">
+              {recentOrders.map(order => (
+                <div key={order.id} className="border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-semibold">Order #{order.id}</p>
                       <p className="text-sm text-gray-600">{order.customerName}</p>
                       <p className="text-sm text-gray-500">{order.items?.length || 0} items - ₹{order.totalAmount?.toFixed(2)}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ₹{
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                       order.status === 'preparing' ? 'bg-blue-100 text-blue-800' :
                       order.status === 'ready' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
+                      order.status === 'delivered' ? 'bg-gray-100 text-gray-800' :
+                      'bg-red-100 text-red-800'
                     }`}>
-                      {order.status}
+                      {order.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
               ))}
-              <a href="/admin/orders" className="block text-center text-blue-600 hover:text-blue-700 font-semibold mt-4">
-                View All Orders →
-              </a>
             </div>
           )}
         </div>
 
+        {/* Recent Reservations */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold mb-4">Recent Reservations</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Recent Reservations</h2>
+            <Link href="/admin/reservations">
+              <a className="text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1">
+                View All <ArrowRight size={16} />
+              </a>
+            </Link>
+          </div>
+
           {recentReservations.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No reservations yet</p>
+            <p className="text-gray-500 text-center py-8">No recent reservations</p>
           ) : (
-            <div className="space-y-3">
-              {recentReservations.map((reservation: any) => (
-                <div key={reservation.id} className="border-l-4 border-green-500 bg-gray-50 p-3 rounded">
+            <div className="space-y-4">
+              {recentReservations.map(reservation => (
+                <div key={reservation.id} className="border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold">{reservation.customerName}</p>
-                      <p className="text-sm text-gray-600">{reservation.date} at {reservation.time}</p>
+                      <p className="font-semibold">{reservation.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(reservation.date).toLocaleDateString()} at {reservation.time}
+                      </p>
                       <p className="text-sm text-gray-500">{reservation.guests} guests</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
                       reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                       reservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
+                      'bg-red-100 text-red-800'
                     }`}>
-                      {reservation.status}
+                      {reservation.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
               ))}
-              <a href="/admin/reservations" className="block text-center text-green-600 hover:text-green-700 font-semibold mt-4">
-                View All Reservations →
-              </a>
             </div>
           )}
         </div>

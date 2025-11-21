@@ -36,7 +36,7 @@ export default function MenuPage() {
           <button
             key={category}
             onClick={() => setSelectedCategory(category)}
-            className={`px-6 py-2 rounded-full font-semibold transition ₹{
+            className={`px-6 py-2 rounded-full font-semibold transition ${
               selectedCategory === category
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
