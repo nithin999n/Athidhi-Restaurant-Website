@@ -115,7 +115,7 @@ export default function AdminOrders() {
                     ))}
                   </ul>
                   <p className="font-bold text-lg mt-2 text-primary-600">
-                    Total: ₹{order.totalAmount.toFixed(2)}
+                    Total: ₹{Number(order.totalAmount).toFixed(2)}
                   </p>
                 </div>
               </div>

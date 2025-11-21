@@ -181,7 +181,7 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-semibold">Order #{order.id}</p>
                       <p className="text-sm text-gray-600">{order.customerName}</p>
-                      <p className="text-sm text-gray-500">{order.items?.length || 0} items - ₹{order.totalAmount?.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">{order.items?.length || 0} items - ₹{Number(order.totalAmount || 0).toFixed(2)}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
