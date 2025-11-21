@@ -16,20 +16,35 @@ export default function AdminReviews() {
   const [overallRating, setOverallRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
   const [filter, setFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews();
   }, []);
 
   const fetchReviews = () => {
+    setLoading(true);
+    setError(null);
     fetch('/api/reviews')
-      .then(res => res.json())
-      .then(data => {
-        setReviews(data.reviews);
-        setOverallRating(data.overallRating);
-        setTotalReviews(data.totalReviews);
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch reviews');
+        return res.json();
       })
-      .catch(err => console.error('Error fetching reviews:', err));
+      .then(data => {
+        setReviews(data.reviews || []);
+        setOverallRating(data.overallRating || 0);
+        setTotalReviews(data.totalReviews || 0);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching reviews:', err);
+        setError('Failed to load reviews. Please try again.');
+        setReviews([]);
+        setOverallRating(0);
+        setTotalReviews(0);
+        setLoading(false);
+      });
   };
 
   const updateReviewStatus = async (id: number, approved: boolean) => {
@@ -77,6 +92,32 @@ export default function AdminReviews() {
   };
 
   const pendingCount = reviews.filter(r => !r.approved).length;
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-16">
+          <p className="text-gray-500 text-lg">Loading reviews...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border-2 border-red-500 rounded-lg p-8 text-center">
+          <p className="text-red-700 text-lg mb-4">{error}</p>
+          <button
+            onClick={fetchReviews}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -13,6 +13,13 @@ const PORT = process.env.PORT || 3000;
 // Load data on startup
 let data = loadData();
 
+// Ensure all required properties exist
+if (!data.menuItems) data.menuItems = [];
+if (!data.orders) data.orders = [];
+if (!data.reservations) data.reservations = [];
+if (!data.tables) data.tables = [];
+if (!data.reviews) data.reviews = [];
+
 // CORS configuration for production
 app.use(cors({
   origin: [
