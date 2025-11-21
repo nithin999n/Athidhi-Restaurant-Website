@@ -89,9 +89,9 @@ export default function AdminDashboard() {
             <div>
               <p className="font-semibold text-yellow-800">Action Required!</p>
               <p className="text-sm text-yellow-700">
-                {stats.pendingOrders > 0 && `${stats.pendingOrders} pending order(s) `}
+                {stats.pendingOrders > 0 && `₹{stats.pendingOrders} pending order(s) `}
                 {stats.pendingOrders > 0 && stats.pendingReservations > 0 && 'and '}
-                {stats.pendingReservations > 0 && `${stats.pendingReservations} pending reservation(s)`}
+                {stats.pendingReservations > 0 && `₹{stats.pendingReservations} pending reservation(s)`}
               </p>
             </div>
           </div>
@@ -164,9 +164,9 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-semibold">Order #{order.id}</p>
                       <p className="text-sm text-gray-600">{order.customerName}</p>
-                      <p className="text-sm text-gray-500">{order.items?.length || 0} items - ${order.totalAmount?.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">{order.items?.length || 0} items - ₹{order.totalAmount?.toFixed(2)}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ₹{
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                       order.status === 'preparing' ? 'bg-blue-100 text-blue-800' :
                       order.status === 'ready' ? 'bg-green-100 text-green-800' :

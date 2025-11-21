@@ -112,7 +112,7 @@ export default function OrderPage() {
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{item.name}</h3>
                     <p className="text-gray-600 text-sm">{item.description}</p>
-                    <p className="text-primary-600 font-bold mt-2">${item.price.toFixed(2)}</p>
+                    <p className="text-primary-600 font-bold mt-2">₹{item.price.toFixed(2)}</p>
                   </div>
                   <button
                     onClick={() => addToCart(item)}
@@ -144,7 +144,7 @@ export default function OrderPage() {
                     <div key={item.id} className="flex justify-between items-center border-b pb-3">
                       <div className="flex-1">
                         <p className="font-semibold">{item.name}</p>
-                        <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
+                        <p className="text-sm text-gray-600">₹{item.price.toFixed(2)} each</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded">
@@ -165,7 +165,7 @@ export default function OrderPage() {
                 <div className="border-t pt-4 mb-6">
                   <div className="flex justify-between text-xl font-bold">
                     <span>Total:</span>
-                    <span className="text-primary-600">${total.toFixed(2)}</span>
+                    <span className="text-primary-600">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
 

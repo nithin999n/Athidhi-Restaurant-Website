@@ -36,7 +36,7 @@ export default function MenuPage() {
           <button
             key={category}
             onClick={() => setSelectedCategory(category)}
-            className={`px-6 py-2 rounded-full font-semibold transition ${
+            className={`px-6 py-2 rounded-full font-semibold transition ₹{
               selectedCategory === category
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -63,7 +63,7 @@ export default function MenuPage() {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-semibold">{item.name}</h3>
-                  <span className="text-primary-600 font-bold">${item.price.toFixed(2)}</span>
+                  <span className="text-primary-600 font-bold">₹{item.price.toFixed(2)}</span>
                 </div>
                 <p className="text-gray-600 mb-4">{item.description}</p>
                 <div className="flex justify-between items-center">

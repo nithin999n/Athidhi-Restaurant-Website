@@ -40,7 +40,7 @@ export default function AdminMenu() {
     
     try {
       if (editingId) {
-        await fetch(`/api/menu/${editingId}`, {
+        await fetch(`/api/menu/₹{editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -55,6 +55,7 @@ export default function AdminMenu() {
       
       resetForm();
       fetchMenu();
+      alert('Menu item saved successfully!');
     } catch (error) {
       console.error('Error saving menu item:', error);
     }
@@ -72,6 +73,7 @@ export default function AdminMenu() {
     try {
       await fetch(`/api/menu/${id}`, { method: 'DELETE' });
       fetchMenu();
+      alert('Menu item deleted successfully!');
     } catch (error) {
       console.error('Error deleting menu item:', error);
     }
@@ -149,7 +151,7 @@ export default function AdminMenu() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">Price ($) *</label>
+                <label className="block text-sm font-semibold mb-2">Price (₹) *</label>
                 <input
                   type="number"
                   required
@@ -221,12 +223,12 @@ export default function AdminMenu() {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-semibold">{item.name}</h3>
-                  <span className="text-primary-600 font-bold">${item.price.toFixed(2)}</span>
+                  <span className="text-primary-600 font-bold">₹{item.price.toFixed(2)}</span>
                 </div>
                 <p className="text-gray-600 mb-2">{item.description}</p>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm text-gray-500">{item.category}</span>
-                  <span className={`text-sm font-semibold ${item.available ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`text-sm font-semibold ₹{item.available ? 'text-green-600' : 'text-red-600'}`}>
                     {item.available ? 'Available' : 'Unavailable'}
                   </span>
                 </div>
