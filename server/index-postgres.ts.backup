@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import db, { initDatabase } from './db-sqlite.js';
+import pool, { initDatabase } from './db-postgres.js';
 import { upload, uploadToCloudinary } from './upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,14 +28,18 @@ app.use(cors({
 app.use(express.json());
 
 // Initialize database
-initDatabase();
-
-// Create default admin if not exists
-const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-if (userCount.count === 0) {
-  const hashedPassword = bcrypt.hashSync('admin123', 10);
-  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
-  console.log('👤 Default admin user created (admin/admin123)');
+if (process.env.DATABASE_URL) {
+  initDatabase().then(async () => {
+    // Create default admin if not exists
+    const result = await pool.query('SELECT COUNT(*) FROM users');
+    if (parseInt(result.rows[0].count) === 0) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', ['admin', hashedPassword]);
+      console.log('👤 Default admin user created (admin/admin123)');
+    }
+  });
+} else {
+  console.warn('⚠️  DATABASE_URL not found - please add PostgreSQL database');
 }
 
 // Serve static files
@@ -60,14 +64,15 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 // --- AUTH ROUTES ---
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
-    if (!user) {
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-    const isMatch = bcrypt.compareSync(password, user.password);
+    const user = result.rows[0];
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -92,73 +97,56 @@ app.post('/api/upload', authenticateToken, upload.single('image'), async (req, r
 
 // --- MENU ROUTES ---
 
-app.get('/api/menu', (req, res) => {
+app.get('/api/menu', async (req, res) => {
   try {
-    const items = db.prepare('SELECT * FROM menu_items ORDER BY category, name').all() as any[];
-    const formatted = items.map(item => ({
+    const result = await pool.query('SELECT * FROM menu_items ORDER BY category, name');
+    const items = result.rows.map(item => ({
       id: item.id,
       name: item.name,
       description: item.description,
-      price: item.price,
+      price: parseFloat(item.price),
       category: item.category,
       imageUrl: item.image_url,
-      available: Boolean(item.available)
+      available: item.available
     }));
-    res.json(formatted);
+    res.json(items);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching menu' });
   }
 });
 
-app.post('/api/menu', authenticateToken, (req, res) => {
+app.post('/api/menu', authenticateToken, async (req, res) => {
   const { name, description, price, category, image_url, available } = req.body;
   try {
-    const result = db.prepare(
-      'INSERT INTO menu_items (name, description, price, category, image_url, available) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(name, description, price, category, image_url, available ? 1 : 0);
-    
-    const item = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(result.lastInsertRowid) as any;
-    res.json({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      category: item.category,
-      imageUrl: item.image_url,
-      available: Boolean(item.available)
-    });
+    const result = await pool.query(
+      'INSERT INTO menu_items (name, description, price, category, image_url, available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, description, price, category, image_url, available ?? true]
+    );
+    const item = result.rows[0];
+    res.json({ id: item.id, name: item.name, description: item.description, price: parseFloat(item.price), category: item.category, imageUrl: item.image_url, available: item.available });
   } catch (error) {
     res.status(500).json({ message: 'Error creating menu item' });
   }
 });
 
-app.put('/api/menu/:id', authenticateToken, (req, res) => {
+app.put('/api/menu/:id', authenticateToken, async (req, res) => {
   const { name, description, price, category, image_url, available } = req.body;
   try {
-    db.prepare(
-      'UPDATE menu_items SET name = ?, description = ?, price = ?, category = ?, image_url = ?, available = ? WHERE id = ?'
-    ).run(name, description, price, category, image_url, available ? 1 : 0, req.params.id);
-    
-    const item = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(req.params.id) as any;
-    if (!item) return res.status(404).json({ message: 'Item not found' });
-    
-    res.json({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      category: item.category,
-      imageUrl: item.image_url,
-      available: Boolean(item.available)
-    });
+    const result = await pool.query(
+      'UPDATE menu_items SET name = $1, description = $2, price = $3, category = $4, image_url = $5, available = $6 WHERE id = $7 RETURNING *',
+      [name, description, price, category, image_url, available, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Item not found' });
+    const item = result.rows[0];
+    res.json({ id: item.id, name: item.name, description: item.description, price: parseFloat(item.price), category: item.category, imageUrl: item.image_url, available: item.available });
   } catch (error) {
     res.status(500).json({ message: 'Error updating menu item' });
   }
 });
 
-app.delete('/api/menu/:id', authenticateToken, (req, res) => {
+app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
   try {
-    db.prepare('DELETE FROM menu_items WHERE id = ?').run(req.params.id);
+    await pool.query('DELETE FROM menu_items WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting menu item' });
@@ -167,40 +155,40 @@ app.delete('/api/menu/:id', authenticateToken, (req, res) => {
 
 // --- ORDER ROUTES ---
 
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', async (req, res) => {
   try {
-    const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all() as any[];
-    const formatted = orders.map(order => ({
+    const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+    const orders = result.rows.map(order => ({
       id: order.id,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       customerAddress: order.customer_address,
-      items: JSON.parse(order.items),
-      totalAmount: order.total_amount,
+      items: order.items,
+      totalAmount: parseFloat(order.total_amount),
       status: order.status,
       createdAt: order.created_at
     }));
-    res.json(formatted);
+    res.json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching orders' });
   }
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   const { customer_name, customer_phone, customer_address, items, total_amount } = req.body;
   try {
-    const result = db.prepare(
-      'INSERT INTO orders (customer_name, customer_phone, customer_address, items, total_amount, status) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(customer_name, customer_phone, customer_address, JSON.stringify(items), total_amount, 'pending');
-    
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(result.lastInsertRowid) as any;
+    const result = await pool.query(
+      'INSERT INTO orders (customer_name, customer_phone, customer_address, items, total_amount, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [customer_name, customer_phone, customer_address, JSON.stringify(items), total_amount, 'pending']
+    );
+    const order = result.rows[0];
     res.json({
       id: order.id,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       customerAddress: order.customer_address,
-      items: JSON.parse(order.items),
-      totalAmount: order.total_amount,
+      items: order.items,
+      totalAmount: parseFloat(order.total_amount),
       status: order.status,
       createdAt: order.created_at
     });
@@ -209,20 +197,22 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-app.put('/api/orders/:id', authenticateToken, (req, res) => {
+app.put('/api/orders/:id', authenticateToken, async (req, res) => {
   const { status } = req.body;
   try {
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id) as any;
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    
+    const result = await pool.query(
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+      [status, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Order not found' });
+    const order = result.rows[0];
     res.json({
       id: order.id,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       customerAddress: order.customer_address,
-      items: JSON.parse(order.items),
-      totalAmount: order.total_amount,
+      items: order.items,
+      totalAmount: parseFloat(order.total_amount),
       status: order.status,
       createdAt: order.created_at
     });
@@ -233,10 +223,10 @@ app.put('/api/orders/:id', authenticateToken, (req, res) => {
 
 // --- RESERVATION ROUTES ---
 
-app.get('/api/reservations', (req, res) => {
+app.get('/api/reservations', async (req, res) => {
   try {
-    const reservations = db.prepare('SELECT * FROM reservations ORDER BY date, time').all() as any[];
-    const formatted = reservations.map(r => ({
+    const result = await pool.query('SELECT * FROM reservations ORDER BY date, time');
+    const reservations = result.rows.map(r => ({
       id: r.id,
       customerName: r.customer_name,
       customerPhone: r.customer_phone,
@@ -249,20 +239,20 @@ app.get('/api/reservations', (req, res) => {
       tableId: r.table_id,
       createdAt: r.created_at
     }));
-    res.json(formatted);
+    res.json(reservations);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching reservations' });
   }
 });
 
-app.post('/api/reservations', (req, res) => {
+app.post('/api/reservations', async (req, res) => {
   const { customer_name, customer_phone, customer_email, date, time, guests, special_requests } = req.body;
   try {
-    const result = db.prepare(
-      'INSERT INTO reservations (customer_name, customer_phone, customer_email, date, time, guests, special_requests, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(customer_name, customer_phone, customer_email, date, time, guests, special_requests, 'pending');
-    
-    const r = db.prepare('SELECT * FROM reservations WHERE id = ?').get(result.lastInsertRowid) as any;
+    const result = await pool.query(
+      'INSERT INTO reservations (customer_name, customer_phone, customer_email, date, time, guests, special_requests, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [customer_name, customer_phone, customer_email, date, time, guests, special_requests, 'pending']
+    );
+    const r = result.rows[0];
     res.json({
       id: r.id,
       customerName: r.customer_name,
@@ -281,15 +271,15 @@ app.post('/api/reservations', (req, res) => {
   }
 });
 
-app.put('/api/reservations/:id', authenticateToken, (req, res) => {
+app.put('/api/reservations/:id', authenticateToken, async (req, res) => {
   const { status, table_id } = req.body;
   try {
-    if (status) db.prepare('UPDATE reservations SET status = ? WHERE id = ?').run(status, req.params.id);
-    if (table_id) db.prepare('UPDATE reservations SET table_id = ? WHERE id = ?').run(table_id, req.params.id);
-    
-    const r = db.prepare('SELECT * FROM reservations WHERE id = ?').get(req.params.id) as any;
-    if (!r) return res.status(404).json({ message: 'Reservation not found' });
-    
+    const result = await pool.query(
+      'UPDATE reservations SET status = COALESCE($1, status), table_id = COALESCE($2, table_id) WHERE id = $3 RETURNING *',
+      [status, table_id, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Reservation not found' });
+    const r = result.rows[0];
     res.json({
       id: r.id,
       customerName: r.customer_name,
@@ -310,55 +300,54 @@ app.put('/api/reservations/:id', authenticateToken, (req, res) => {
 
 // --- REVIEW ROUTES ---
 
-app.get('/api/reviews', (req, res) => {
+app.get('/api/reviews', async (req, res) => {
   try {
-    const approved = db.prepare('SELECT * FROM reviews WHERE approved = 1 ORDER BY created_at DESC').all() as any[];
-    const all = db.prepare('SELECT * FROM reviews').all() as any[];
+    const approved = await pool.query('SELECT * FROM reviews WHERE approved = true ORDER BY created_at DESC');
+    const all = await pool.query('SELECT * FROM reviews');
     
-    const totalRating = all.reduce((sum, r) => sum + r.rating, 0);
-    const averageRating = all.length > 0 ? totalRating / all.length : 0;
+    const totalRating = all.rows.reduce((sum, r) => sum + r.rating, 0);
+    const averageRating = all.rows.length > 0 ? totalRating / all.rows.length : 0;
     
-    const reviews = approved.map(r => ({
+    const reviews = approved.rows.map(r => ({
       id: r.id,
       customerName: r.customer_name,
       rating: r.rating,
       reviewText: r.review_text,
       imageUrl: r.image_url,
-      approved: Boolean(r.approved),
+      approved: r.approved,
       createdAt: r.created_at
     }));
     
     res.json({
       reviews,
       overallRating: averageRating,
-      totalReviews: all.length
+      totalReviews: all.rows.length
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching reviews' });
   }
 });
 
-app.get('/api/admin/reviews', authenticateToken, (req, res) => {
+app.get('/api/admin/reviews', authenticateToken, async (req, res) => {
   try {
-    const all = db.prepare('SELECT * FROM reviews ORDER BY created_at DESC').all() as any[];
-    
-    const totalRating = all.reduce((sum, r) => sum + r.rating, 0);
-    const averageRating = all.length > 0 ? totalRating / all.length : 0;
-    
-    const reviews = all.map(r => ({
+    const result = await pool.query('SELECT * FROM reviews ORDER BY created_at DESC');
+    const reviews = result.rows.map(r => ({
       id: r.id,
       customerName: r.customer_name,
       rating: r.rating,
       reviewText: r.review_text,
       imageUrl: r.image_url,
-      approved: Boolean(r.approved),
+      approved: r.approved,
       createdAt: r.created_at
     }));
+    
+    const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+    const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
     
     res.json({
       reviews,
       overallRating: averageRating,
-      totalReviews: all.length
+      totalReviews: reviews.length
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching admin reviews' });
@@ -372,18 +361,18 @@ app.post('/api/reviews', upload.single('image'), async (req, res) => {
       imageUrl = await uploadToCloudinary(req.file.buffer);
     }
 
-    const result = db.prepare(
-      'INSERT INTO reviews (customer_name, rating, review_text, image_url, approved) VALUES (?, ?, ?, ?, ?)'
-    ).run(req.body.customer_name, req.body.rating, req.body.review_text, imageUrl, 0);
-    
-    const r = db.prepare('SELECT * FROM reviews WHERE id = ?').get(result.lastInsertRowid) as any;
+    const result = await pool.query(
+      'INSERT INTO reviews (customer_name, rating, review_text, image_url, approved) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [req.body.customer_name, req.body.rating, req.body.review_text, imageUrl, false]
+    );
+    const r = result.rows[0];
     res.json({
       id: r.id,
       customerName: r.customer_name,
       rating: r.rating,
       reviewText: r.review_text,
       imageUrl: r.image_url,
-      approved: Boolean(r.approved),
+      approved: r.approved,
       createdAt: r.created_at
     });
   } catch (error) {
@@ -391,20 +380,22 @@ app.post('/api/reviews', upload.single('image'), async (req, res) => {
   }
 });
 
-app.put('/api/reviews/:id', authenticateToken, (req, res) => {
+app.put('/api/reviews/:id', authenticateToken, async (req, res) => {
   const { approved } = req.body;
   try {
-    db.prepare('UPDATE reviews SET approved = ? WHERE id = ?').run(approved ? 1 : 0, req.params.id);
-    const r = db.prepare('SELECT * FROM reviews WHERE id = ?').get(req.params.id) as any;
-    if (!r) return res.status(404).json({ message: 'Review not found' });
-    
+    const result = await pool.query(
+      'UPDATE reviews SET approved = $1 WHERE id = $2 RETURNING *',
+      [approved, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Review not found' });
+    const r = result.rows[0];
     res.json({
       id: r.id,
       customerName: r.customer_name,
       rating: r.rating,
       reviewText: r.review_text,
       imageUrl: r.image_url,
-      approved: Boolean(r.approved),
+      approved: r.approved,
       createdAt: r.created_at
     });
   } catch (error) {
@@ -412,9 +403,9 @@ app.put('/api/reviews/:id', authenticateToken, (req, res) => {
   }
 });
 
-app.delete('/api/reviews/:id', authenticateToken, (req, res) => {
+app.delete('/api/reviews/:id', authenticateToken, async (req, res) => {
   try {
-    db.prepare('DELETE FROM reviews WHERE id = ?').run(req.params.id);
+    await pool.query('DELETE FROM reviews WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting review' });
@@ -423,24 +414,27 @@ app.delete('/api/reviews/:id', authenticateToken, (req, res) => {
 
 // --- STATS ROUTE ---
 
-app.get('/api/admin/stats', authenticateToken, (req, res) => {
+app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
     let dateFilter = '';
+    const params: any[] = [];
+    
     if (startDate && endDate) {
-      dateFilter = `WHERE created_at >= '${startDate}' AND created_at <= '${endDate}'`;
+      dateFilter = 'WHERE created_at >= $1 AND created_at <= $2';
+      params.push(startDate, endDate);
     }
 
-    const ordersResult = db.prepare(`SELECT COUNT(*) as count FROM orders ${dateFilter}`).get() as any;
-    const revenueResult = db.prepare(`SELECT SUM(total_amount) as total FROM orders ${dateFilter} AND status != 'cancelled'`).get() as any;
-    const reviewsResult = db.prepare(`SELECT COUNT(*) as count, AVG(rating) as avg FROM reviews ${dateFilter}`).get() as any;
+    const ordersResult = await pool.query(`SELECT COUNT(*) as count FROM orders ${dateFilter}`, params);
+    const revenueResult = await pool.query(`SELECT SUM(total_amount) as total FROM orders ${dateFilter} AND status != 'cancelled'`, params);
+    const reviewsResult = await pool.query(`SELECT COUNT(*) as count, AVG(rating) as avg FROM reviews ${dateFilter}`, params);
 
     res.json({
-      orders: ordersResult.count || 0,
-      revenue: revenueResult.total || 0,
-      reviews: reviewsResult.count || 0,
-      averageRating: reviewsResult.avg || 0
+      orders: parseInt(ordersResult.rows[0].count),
+      revenue: parseFloat(revenueResult.rows[0].total || 0),
+      reviews: parseInt(reviewsResult.rows[0].count),
+      averageRating: parseFloat(reviewsResult.rows[0].avg || 0)
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching stats' });
@@ -456,5 +450,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`💾 Database: SQLite (file-based, persistent)`);
+  console.log(`💾 Database: PostgreSQL ${process.env.DATABASE_URL ? '(Connected)' : '(Not configured)'}`);
 });
