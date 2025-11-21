@@ -61,12 +61,20 @@ export default function AdminMenu() {
         const uploadData = new FormData();
         uploadData.append('image', imageFile);
         
+        const token = localStorage.getItem('adminToken');
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
           body: uploadData,
         });
         
-        if (!uploadRes.ok) throw new Error('Image upload failed');
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error('Upload error:', errorText);
+          throw new Error('Image upload failed');
+        }
         
         const uploadJson = await uploadRes.json();
         imageUrl = uploadJson.url;
@@ -81,7 +89,14 @@ export default function AdminMenu() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         },
-        body: JSON.stringify({ ...formData, imageUrl }),
+        body: JSON.stringify({ 
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          category: formData.category,
+          image_url: imageUrl,
+          available: formData.available
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to save menu item');
