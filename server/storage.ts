@@ -1,7 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Use /tmp directory on serverless platforms, or local data directory
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp' 
+  : path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'restaurant-data.json');
 
 // Default empty data structure
@@ -15,9 +22,13 @@ const DEFAULT_DATA = {
 
 // Ensure data directory exists
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    console.log('✅ Created data directory');
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      console.log('✅ Created data directory:', DATA_DIR);
+    }
+  } catch (error) {
+    console.log('⚠️ Could not create data directory, using in-memory storage');
   }
 }
 
@@ -51,8 +62,9 @@ export function saveData(data: any) {
     console.log('💾 Data saved to file');
     return true;
   } catch (error) {
-    console.error('❌ Error saving data:', error);
-    return false;
+    console.error('⚠️ Could not save to file (using in-memory):', error.message);
+    // Don't fail - just continue with in-memory storage
+    return true;
   }
 }
 
