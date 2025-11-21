@@ -5,7 +5,7 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build && npm run build:server
+    buildCommand: npm install --production=false && npm run build && npm run build:server
     startCommand: npm start
     envVars:
 
