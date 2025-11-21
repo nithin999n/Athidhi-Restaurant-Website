@@ -64,7 +64,12 @@ export default function ReviewsPage() {
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          customer_name: formData.customerName,
+          rating: formData.rating,
+          review_text: formData.reviewText,
+          image_url: formData.imageUrl
+        }),
       });
 
       if (response.ok) {
@@ -72,10 +77,12 @@ export default function ReviewsPage() {
         setFormData({ customerName: '', rating: 5, reviewText: '', imageUrl: '' });
         setWordCount(0);
         setShowForm(false);
+        fetchReviews(); // Refresh reviews list
         setTimeout(() => setSubmitted(false), 5000);
       }
     } catch (error) {
       console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
     }
   };
 
@@ -154,9 +161,12 @@ export default function ReviewsPage() {
         {/* Success Message */}
         {submitted && (
           <div className="bg-green-50 border-2 border-green-500 rounded-lg p-6 mb-8 text-center">
-            <h3 className="text-green-800 font-bold text-xl mb-2">Thank You!</h3>
-            <p className="text-green-700">
-              Your review has been submitted and is pending approval. It will appear shortly.
+            <h3 className="text-green-800 font-bold text-xl mb-2">✅ Thank You!</h3>
+            <p className="text-green-700 text-lg mb-2">
+              Your review has been submitted successfully!
+            </p>
+            <p className="text-green-600 text-sm">
+              📋 Note: Reviews are moderated by our team and will appear on this page once approved (usually within 24 hours).
             </p>
           </div>
         )}

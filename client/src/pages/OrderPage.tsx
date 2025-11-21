@@ -57,11 +57,11 @@ export default function OrderPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: customerInfo.name,
-          customerPhone: customerInfo.phone,
-          customerAddress: customerInfo.address,
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
           items: cart,
-          totalAmount: total,
+          total_amount: total,
         }),
       });
 
@@ -69,9 +69,12 @@ export default function OrderPage() {
         setOrderPlaced(true);
         setCart([]);
         setCustomerInfo({ name: '', phone: '', address: '' });
+      } else {
+        alert('Failed to place order. Please try again.');
       }
     } catch (error) {
       console.error('Error placing order:', error);
+      alert('Failed to place order. Please try again.');
     }
   };
 

@@ -20,7 +20,15 @@ export default function ReservationPage() {
       const response = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          customer_name: formData.name,
+          customer_phone: formData.phone,
+          customer_email: formData.email,
+          date: formData.date,
+          time: formData.time,
+          guests: formData.guests,
+          special_requests: formData.specialRequests,
+        }),
       });
 
       if (response.ok) {
@@ -34,9 +42,12 @@ export default function ReservationPage() {
           guests: 2,
           specialRequests: '',
         });
+      } else {
+        alert('Failed to submit reservation. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting reservation:', error);
+      alert('Failed to submit reservation. Please try again.');
     }
   };
 
