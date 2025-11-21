@@ -63,7 +63,7 @@ app.post('/api/menu', (req, res) => {
       description,
       price,
       category,
-      image_url,
+      imageUrl: image_url,
       available: available ?? true
     };
     data.menuItems.push(newItem);
@@ -81,7 +81,7 @@ app.put('/api/menu/:id', (req, res) => {
   try {
     const index = data.menuItems.findIndex((item: any) => item.id === id);
     if (index !== -1) {
-      data.menuItems[index] = { ...data.menuItems[index], name, description, price, category, image_url, available };
+      data.menuItems[index] = { ...data.menuItems[index], name, description, price, category, imageUrl: image_url, available };
       saveData(data);
       res.json(data.menuItems[index]);
     } else {
@@ -120,13 +120,13 @@ app.post('/api/orders', (req, res) => {
   try {
     const newOrder = {
       id: Date.now(),
-      customer_name,
-      customer_phone,
-      customer_address,
+      customerName: customer_name,
+      customerPhone: customer_phone,
+      customerAddress: customer_address,
       items,
-      total_amount,
+      totalAmount: total_amount,
       status: 'pending',
-      created_at: new Date().toISOString()
+      createdAt: new Date().toISOString()
     };
     data.orders.push(newOrder);
     saveData(data);
@@ -170,15 +170,16 @@ app.post('/api/reservations', (req, res) => {
   try {
     const newReservation = {
       id: Date.now(),
-      customer_name,
-      customer_phone,
-      customer_email,
+      customerName: customer_name,
+      customerPhone: customer_phone,
+      customerEmail: customer_email,
       date,
       time,
       guests,
-      special_requests,
+      specialRequests: special_requests,
       status: 'pending',
-      created_at: new Date().toISOString()
+      tableId: null,
+      createdAt: new Date().toISOString()
     };
     data.reservations.push(newReservation);
     saveData(data);
@@ -196,7 +197,7 @@ app.put('/api/reservations/:id', (req, res) => {
     const index = data.reservations.findIndex((res: any) => res.id === id);
     if (index !== -1) {
       if (status) data.reservations[index].status = status;
-      if (table_id) data.reservations[index].table_id = table_id;
+      if (table_id) data.reservations[index].tableId = table_id;
       saveData(data);
       res.json(data.reservations[index]);
     } else {
@@ -223,7 +224,7 @@ app.post('/api/tables', (req, res) => {
   try {
     const newTable = {
       id: Date.now(),
-      table_number,
+      tableNumber: table_number,
       capacity,
       location,
       available: available ?? true
@@ -243,7 +244,7 @@ app.put('/api/tables/:id', (req, res) => {
   try {
     const index = data.tables.findIndex((table: any) => table.id === id);
     if (index !== -1) {
-      data.tables[index] = { ...data.tables[index], table_number, capacity, location, available };
+      data.tables[index] = { ...data.tables[index], tableNumber: table_number, capacity, location, available };
       saveData(data);
       res.json(data.tables[index]);
     } else {
@@ -290,12 +291,12 @@ app.post('/api/reviews', (req, res) => {
   try {
     const newReview = {
       id: Date.now(),
-      customer_name,
+      customerName: customer_name,
       rating,
-      review_text,
-      image_url,
+      reviewText: review_text,
+      imageUrl: image_url,
       approved: false,
-      created_at: new Date().toISOString()
+      createdAt: new Date().toISOString()
     };
     data.reviews.push(newReview);
     saveData(data);
