@@ -2,7 +2,20 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { loadData, saveData } from './storage.js';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+import { User } from './models/User.js';
+import { Menu } from './models/Menu.js';
+import { Order } from './models/Order.js';
+import { Review } from './models/Review.js';
+import { Reservation } from './models/Reservation.js';
+import { upload, uploadToCloudinary } from './upload.js';
+import { authenticateToken, AuthRequest } from './middleware/auth.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,17 +23,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Load data on startup
-let data = loadData();
-
-// Ensure all required properties exist
-if (!data.menuItems) data.menuItems = [];
-if (!data.orders) data.orders = [];
-if (!data.reservations) data.reservations = [];
-if (!data.tables) data.tables = [];
-if (!data.reviews) data.reviews = [];
-
-// CORS configuration for production
+// Middleware
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -32,334 +35,305 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Connect to MongoDB
+const MONGODB_URI = process.env.MONGODB_URI;
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(async () => {
+      console.log('✅ Connected to MongoDB');
+      // Create default admin if not exists
+      const adminCount = await User.countDocuments();
+      if (adminCount === 0) {
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        await User.create({
+          username: 'admin',
+          password: hashedPassword
+        });
+        console.log('👤 Default admin user created');
+      }
+    })
+    .catch(err => console.error('❌ MongoDB connection error:', err));
+} else {
+  console.warn('⚠️ MONGODB_URI not found in environment variables');
+}
+
 // Serve static files from dist folder in production
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../dist');
   app.use(express.static(distPath));
 }
 
-// Admin credentials (in production, use database with hashed passwords)
-const ADMIN_USER = { username: 'admin', password: 'admin123' };
+// --- Auth Routes ---
 
-// Auth endpoint
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
-    res.json({ success: true, token: 'admin-token-123' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
-});
-
-// Menu endpoints
-app.get('/api/menu', (req, res) => {
   try {
-    res.json(data.menuItems || []);
-  } catch (error) {
-    console.error('Error fetching menu:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.post('/api/menu', (req, res) => {
-  const { name, description, price, category, image_url, available } = req.body;
-  try {
-    const newItem = {
-      id: Date.now(),
-      name,
-      description,
-      price,
-      category,
-      imageUrl: image_url,
-      available: available ?? true
-    };
-    data.menuItems.push(newItem);
-    saveData(data);
-    res.json(newItem);
-  } catch (error) {
-    console.error('Error creating menu item:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.put('/api/menu/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { name, description, price, category, image_url, available } = req.body;
-  try {
-    const index = data.menuItems.findIndex((item: any) => item.id === id);
-    if (index !== -1) {
-      data.menuItems[index] = { ...data.menuItems[index], name, description, price, category, imageUrl: image_url, available };
-      saveData(data);
-      res.json(data.menuItems[index]);
-    } else {
-      res.status(404).json({ message: 'Item not found' });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET || 'secret', { expiresIn: '24h' });
+    res.json({ success: true, token });
   } catch (error) {
-    console.error('Error updating menu item:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-app.delete('/api/menu/:id', (req, res) => {
-  const id = parseInt(req.params.id);
+app.get('/api/admin/check-auth', authenticateToken, (req, res) => {
+  res.json({ success: true, user: (req as any).user });
+});
+
+// --- Upload Route ---
+
+app.post('/api/upload', authenticateToken, upload.single('image'), async (req, res) => {
   try {
-    data.menuItems = data.menuItems.filter((item: any) => item.id !== id);
-    saveData(data);
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const imageUrl = await uploadToCloudinary(req.file.buffer);
+    res.json({ url: imageUrl });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ message: 'Upload failed' });
+  }
+});
+
+// --- Menu Routes ---
+
+app.get('/api/menu', async (req, res) => {
+  try {
+    const items = await Menu.find().sort({ category: 1, name: 1 });
+    // Map _id to id for frontend compatibility
+    const formattedItems = items.map(item => ({ ...item.toObject(), id: item._id }));
+    res.json(formattedItems);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching menu' });
+  }
+});
+
+app.post('/api/menu', authenticateToken, async (req, res) => {
+  try {
+    const newItem = await Menu.create(req.body);
+    res.json({ ...newItem.toObject(), id: newItem._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating menu item' });
+  }
+});
+
+app.put('/api/menu/:id', authenticateToken, async (req, res) => {
+  try {
+    const updatedItem = await Menu.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedItem) return res.status(404).json({ message: 'Item not found' });
+    res.json({ ...updatedItem.toObject(), id: updatedItem._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating menu item' });
+  }
+});
+
+app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
+  try {
+    await Menu.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting menu item:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error deleting menu item' });
   }
 });
 
-// Order endpoints
-app.get('/api/orders', (req, res) => {
+// --- Order Routes ---
+
+app.get('/api/orders', async (req, res) => {
   try {
-    res.json(data.orders || []);
+    const orders = await Order.find().sort({ createdAt: -1 });
+    const formattedOrders = orders.map(order => ({ ...order.toObject(), id: order._id }));
+    res.json(formattedOrders);
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching orders' });
   }
 });
 
-app.post('/api/orders', (req, res) => {
-  const { customer_name, customer_phone, customer_address, items, total_amount } = req.body;
+app.post('/api/orders', async (req, res) => {
   try {
-    const newOrder = {
-      id: Date.now(),
-      customerName: customer_name,
-      customerPhone: customer_phone,
-      customerAddress: customer_address,
-      items,
-      totalAmount: total_amount,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    data.orders.push(newOrder);
-    saveData(data);
-    res.json(newOrder);
+    const newOrder = await Order.create(req.body);
+    res.json({ ...newOrder.toObject(), id: newOrder._id });
   } catch (error) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error creating order' });
   }
 });
 
-app.put('/api/orders/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { status } = req.body;
+app.put('/api/orders/:id', authenticateToken, async (req, res) => {
   try {
-    const index = data.orders.findIndex((order: any) => order.id === id);
-    if (index !== -1) {
-      data.orders[index].status = status;
-      saveData(data);
-      res.json(data.orders[index]);
-    } else {
-      res.status(404).json({ message: 'Order not found' });
-    }
+    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedOrder) return res.status(404).json({ message: 'Order not found' });
+    res.json({ ...updatedOrder.toObject(), id: updatedOrder._id });
   } catch (error) {
-    console.error('Error updating order:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error updating order' });
   }
 });
 
-// Reservation endpoints
-app.get('/api/reservations', (req, res) => {
+// --- Reservation Routes ---
+
+app.get('/api/reservations', async (req, res) => {
   try {
-    res.json(data.reservations || []);
+    const reservations = await Reservation.find().sort({ date: 1, time: 1 });
+    const formattedReservations = reservations.map(res => ({ ...res.toObject(), id: res._id }));
+    res.json(formattedReservations);
   } catch (error) {
-    console.error('Error fetching reservations:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching reservations' });
   }
 });
 
-app.post('/api/reservations', (req, res) => {
-  const { customer_name, customer_phone, customer_email, date, time, guests, special_requests } = req.body;
+app.post('/api/reservations', async (req, res) => {
   try {
-    const newReservation = {
-      id: Date.now(),
-      customerName: customer_name,
-      customerPhone: customer_phone,
-      customerEmail: customer_email,
-      date,
-      time,
-      guests,
-      specialRequests: special_requests,
-      status: 'pending',
-      tableId: null,
-      createdAt: new Date().toISOString()
-    };
-    data.reservations.push(newReservation);
-    saveData(data);
-    res.json(newReservation);
+    const newReservation = await Reservation.create(req.body);
+    res.json({ ...newReservation.toObject(), id: newReservation._id });
   } catch (error) {
-    console.error('Error creating reservation:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error creating reservation' });
   }
 });
 
-app.put('/api/reservations/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { status, table_id } = req.body;
+app.put('/api/reservations/:id', authenticateToken, async (req, res) => {
   try {
-    const index = data.reservations.findIndex((res: any) => res.id === id);
-    if (index !== -1) {
-      if (status) data.reservations[index].status = status;
-      if (table_id) data.reservations[index].tableId = table_id;
-      saveData(data);
-      res.json(data.reservations[index]);
-    } else {
-      res.status(404).json({ message: 'Reservation not found' });
-    }
+    const updatedReservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedReservation) return res.status(404).json({ message: 'Reservation not found' });
+    res.json({ ...updatedReservation.toObject(), id: updatedReservation._id });
   } catch (error) {
-    console.error('Error updating reservation:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error updating reservation' });
   }
 });
 
-// Table endpoints
-app.get('/api/tables', (req, res) => {
-  try {
-    res.json(data.tables || []);
-  } catch (error) {
-    console.error('Error fetching tables:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+// --- Review Routes ---
 
-app.post('/api/tables', (req, res) => {
-  const { table_number, capacity, location, available } = req.body;
+app.get('/api/reviews', async (req, res) => {
   try {
-    const newTable = {
-      id: Date.now(),
-      tableNumber: table_number,
-      capacity,
-      location,
-      available: available ?? true
-    };
-    data.tables.push(newTable);
-    saveData(data);
-    res.json(newTable);
-  } catch (error) {
-    console.error('Error creating table:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.put('/api/tables/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { table_number, capacity, location, available } = req.body;
-  try {
-    const index = data.tables.findIndex((table: any) => table.id === id);
-    if (index !== -1) {
-      data.tables[index] = { ...data.tables[index], tableNumber: table_number, capacity, location, available };
-      saveData(data);
-      res.json(data.tables[index]);
-    } else {
-      res.status(404).json({ message: 'Table not found' });
-    }
-  } catch (error) {
-    console.error('Error updating table:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.delete('/api/tables/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  try {
-    data.tables = data.tables.filter((table: any) => table.id !== id);
-    saveData(data);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting table:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-// Review endpoints
-app.get('/api/reviews', (req, res) => {
-  try {
-    const reviews = data.reviews || [];
-    const totalRating = reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
-    const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+    const reviews = await Review.find({ approved: true }).sort({ createdAt: -1 });
+    const allReviews = await Review.find(); // For calculation
+    
+    const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
+    
+    const formattedReviews = reviews.map(review => ({ ...review.toObject(), id: review._id }));
     
     res.json({
-      reviews: reviews,
+      reviews: formattedReviews,
       overallRating: averageRating,
-      totalReviews: reviews.length
+      totalReviews: allReviews.length
     });
   } catch (error) {
-    console.error('Error fetching reviews:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching reviews' });
   }
 });
 
-app.post('/api/reviews', (req, res) => {
-  const { customer_name, rating, review_text, image_url } = req.body;
+// Admin route to get ALL reviews (including unapproved)
+app.get('/api/admin/reviews', authenticateToken, async (req, res) => {
   try {
-    const newReview = {
-      id: Date.now(),
-      customerName: customer_name,
-      rating,
-      reviewText: review_text,
-      imageUrl: image_url,
-      approved: false,
-      createdAt: new Date().toISOString()
-    };
-    data.reviews.push(newReview);
-    saveData(data);
-    res.json(newReview);
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    const formattedReviews = reviews.map(review => ({ ...review.toObject(), id: review._id }));
+    res.json(formattedReviews);
   } catch (error) {
-    console.error('Error creating review:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching admin reviews' });
   }
 });
 
-app.put('/api/reviews/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { approved } = req.body;
+app.post('/api/reviews', upload.single('image'), async (req, res) => {
   try {
-    const index = data.reviews.findIndex((review: any) => review.id === id);
-    if (index !== -1) {
-      data.reviews[index].approved = approved;
-      saveData(data);
-      res.json(data.reviews[index]);
-    } else {
-      res.status(404).json({ message: 'Review not found' });
+    let imageUrl = req.body.image_url; // From URL input if any
+    if (req.file) {
+      imageUrl = await uploadToCloudinary(req.file.buffer);
     }
+
+    const reviewData = {
+      customerName: req.body.customer_name,
+      rating: Number(req.body.rating),
+      reviewText: req.body.review_text,
+      imageUrl: imageUrl,
+      approved: false
+    };
+
+    const newReview = await Review.create(reviewData);
+    res.json({ ...newReview.toObject(), id: newReview._id });
   } catch (error) {
-    console.error('Error updating review:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error(error);
+    res.status(500).json({ message: 'Error creating review' });
   }
 });
 
-app.delete('/api/reviews/:id', (req, res) => {
-  const id = parseInt(req.params.id);
+app.put('/api/reviews/:id', authenticateToken, async (req, res) => {
   try {
-    data.reviews = data.reviews.filter((review: any) => review.id !== id);
-    saveData(data);
+    const updatedReview = await Review.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedReview) return res.status(404).json({ message: 'Review not found' });
+    res.json({ ...updatedReview.toObject(), id: updatedReview._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating review' });
+  }
+});
+
+app.delete('/api/reviews/:id', authenticateToken, async (req, res) => {
+  try {
+    await Review.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting review:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error deleting review' });
   }
 });
 
-// Admin data management endpoints
-app.get('/api/admin/data-info', (req, res) => {
+// --- Admin Stats Routes ---
+
+app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    let dateFilter: any = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        createdAt: {
+          $gte: new Date(startDate as string),
+          $lte: new Date(endDate as string)
+        }
+      };
+    }
+
+    const totalOrders = await Order.countDocuments(dateFilter);
+    const totalRevenueResult = await Order.aggregate([
+      { $match: { ...dateFilter, status: { $ne: 'cancelled' } } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    const totalRevenue = totalRevenueResult[0]?.total || 0;
+
+    const totalReviews = await Review.countDocuments(dateFilter);
+    const reviews = await Review.find(dateFilter);
+    const avgRating = reviews.length > 0 
+      ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+      : 0;
+
     res.json({
-      database: 'File-based storage',
-      counts: {
-        menuItems: data.menuItems?.length || 0,
-        orders: data.orders?.length || 0,
-        reservations: data.reservations?.length || 0,
-        tables: data.tables?.length || 0,
-        reviews: data.reviews?.length || 0,
-      }
+      orders: totalOrders,
+      revenue: totalRevenue,
+      reviews: totalReviews,
+      averageRating: avgRating
     });
   } catch (error) {
-    console.error('Error fetching data info:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching stats' });
+  }
+});
+
+app.get('/api/admin/data-info', authenticateToken, async (req, res) => {
+  try {
+    const counts = {
+      menuItems: await Menu.countDocuments(),
+      orders: await Order.countDocuments(),
+      reservations: await Reservation.countDocuments(),
+      reviews: await Review.countDocuments(),
+    };
+    res.json({
+      database: 'MongoDB Atlas',
+      counts
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching data info' });
   }
 });
 
@@ -372,8 +346,4 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`💾 Storage: File-based (${process.env.NODE_ENV === 'production' ? '/tmp' : 'local data folder'})`);
-  if (process.env.NODE_ENV === 'production') {
-    console.log(`📦 Serving frontend from dist folder\n`);
-  }
 });
