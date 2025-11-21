@@ -21,8 +21,13 @@ export const uploadToCloudinary = async (fileBuffer: Buffer): Promise<string> =>
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'athidhi-restaurant' },
       (error, result) => {
-        if (error) reject(error);
-        else resolve(result?.secure_url || '');
+        if (error) {
+          console.error('Cloudinary Upload Error:', error);
+          reject(error);
+        } else {
+          console.log('Cloudinary Upload Success:', result?.secure_url);
+          resolve(result?.secure_url || '');
+        }
       }
     );
     uploadStream.end(fileBuffer);

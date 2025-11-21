@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon, CheckCircle } from 'lucide-react';
 
 interface MenuItem {
   id?: string;
@@ -178,21 +178,44 @@ export default function AdminMenu() {
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
                   placeholder="e.g., Butter Chicken"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="e.g., Main Course, Appetizer"
-                />
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.category}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white appearance-none"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    <option value="Starters">Starters</option>
+                    <option value="Main Course">Main Course</option>
+                    <option value="Breads">Breads</option>
+                    <option value="Rice & Biryani">Rice & Biryani</option>
+                    <option value="Desserts">Desserts</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
+                    </svg>
+                  </div>
+                </div>
+                {formData.category === 'Other' && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter custom category"
+                    className="mt-3 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  />
+                )}
               </div>
             </div>
 
@@ -203,7 +226,7 @@ export default function AdminMenu() {
                 rows={3}
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
                 placeholder="Describe the dish..."
               />
             </div>
@@ -211,22 +234,25 @@ export default function AdminMenu() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Price (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  step="0.01"
-                  min="0"
-                  value={formData.price}
-                  onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="0.00"
-                />
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-500 font-bold">₹</span>
+                  <input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    className="w-full pl-8 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Item Image</label>
-                <div className="flex items-center gap-4">
-                  <div className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center group">
+                <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl bg-gray-50">
+                  <div className="relative w-24 h-24 bg-white rounded-lg overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center group shadow-sm">
                     {imagePreview ? (
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
@@ -243,26 +269,22 @@ export default function AdminMenu() {
                     />
                     <label
                       htmlFor="menu-image-upload"
-                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                      className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 rounded-lg hover:bg-gray-100 transition font-bold border border-gray-200 shadow-sm hover:shadow-md"
                     >
                       <Upload size={18} />
                       Choose Image
                     </label>
-                    <p className="text-xs text-gray-500 mt-2">Supported formats: JPG, PNG, WEBP</p>
+                    <p className="text-xs text-gray-500 mt-2 font-medium">Supported: JPG, PNG, WEBP (Max 5MB)</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <input
-                type="checkbox"
-                id="available"
-                checked={formData.available}
-                onChange={e => setFormData({ ...formData, available: e.target.checked })}
-                className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500 border-gray-300"
-              />
-              <label htmlFor="available" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-100 transition" onClick={() => setFormData({ ...formData, available: !formData.available })}>
+              <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${formData.available ? 'bg-primary-600 border-primary-600' : 'bg-white border-gray-300'}`}>
+                {formData.available && <CheckCircle size={16} className="text-white" />}
+              </div>
+              <label className="text-sm font-bold text-gray-700 cursor-pointer select-none">
                 Available for ordering
               </label>
             </div>
@@ -271,14 +293,14 @@ export default function AdminMenu() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2 font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2 font-bold shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-[0.98]"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
                     <Save size={20} />
-                    {editingId ? 'Update Item' : 'Add Item'}
+                    {editingId ? 'Update Item' : 'Save Item'}
                   </>
                 )}
               </button>
@@ -286,7 +308,7 @@ export default function AdminMenu() {
                 type="button"
                 onClick={resetForm}
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-bold"
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-bold transform active:scale-[0.98]"
               >
                 Cancel
               </button>
