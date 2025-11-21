@@ -2,13 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pool, { initDatabase } from './db.js';
+import { loadData, saveData } from './storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Load data on startup
+let data = loadData();
 
 // CORS configuration for production
 app.use(cors({
@@ -28,9 +31,6 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(distPath));
 }
 
-// Initialize database on startup
-initDatabase().catch(console.error);
-
 // Admin credentials (in production, use database with hashed passwords)
 const ADMIN_USER = { username: 'admin', password: 'admin123' };
 
@@ -45,40 +45,45 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // Menu endpoints
-app.get('/api/menu', async (req, res) => {
+app.get('/api/menu', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM menu_items ORDER BY category, name');
-    res.json(result.rows);
+    res.json(data.menuItems || []);
   } catch (error) {
     console.error('Error fetching menu:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.post('/api/menu', async (req, res) => {
+app.post('/api/menu', (req, res) => {
   const { name, description, price, category, image_url, available } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO menu_items (name, description, price, category, image_url, available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [name, description, price, category, image_url, available ?? true]
-    );
-    res.json(result.rows[0]);
+    const newItem = {
+      id: Date.now(),
+      name,
+      description,
+      price,
+      category,
+      image_url,
+      available: available ?? true
+    };
+    data.menuItems.push(newItem);
+    saveData(data);
+    res.json(newItem);
   } catch (error) {
     console.error('Error creating menu item:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/menu/:id', async (req, res) => {
+app.put('/api/menu/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const { name, description, price, category, image_url, available } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE menu_items SET name = $1, description = $2, price = $3, category = $4, image_url = $5, available = $6 WHERE id = $7 RETURNING *',
-      [name, description, price, category, image_url, available, id]
-    );
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    const index = data.menuItems.findIndex((item: any) => item.id === id);
+    if (index !== -1) {
+      data.menuItems[index] = { ...data.menuItems[index], name, description, price, category, image_url, available };
+      saveData(data);
+      res.json(data.menuItems[index]);
     } else {
       res.status(404).json({ message: 'Item not found' });
     }
@@ -88,10 +93,11 @@ app.put('/api/menu/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/menu/:id', async (req, res) => {
+app.delete('/api/menu/:id', (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    await pool.query('DELETE FROM menu_items WHERE id = $1', [id]);
+    data.menuItems = data.menuItems.filter((item: any) => item.id !== id);
+    saveData(data);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting menu item:', error);
@@ -100,40 +106,46 @@ app.delete('/api/menu/:id', async (req, res) => {
 });
 
 // Order endpoints
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    res.json(result.rows);
+    res.json(data.orders || []);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', (req, res) => {
   const { customer_name, customer_phone, customer_address, items, total_amount } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO orders (customer_name, customer_phone, customer_address, items, total_amount, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [customer_name, customer_phone, customer_address, JSON.stringify(items), total_amount, 'pending']
-    );
-    res.json(result.rows[0]);
+    const newOrder = {
+      id: Date.now(),
+      customer_name,
+      customer_phone,
+      customer_address,
+      items,
+      total_amount,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    data.orders.push(newOrder);
+    saveData(data);
+    res.json(newOrder);
   } catch (error) {
     console.error('Error creating order:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/orders/:id', async (req, res) => {
+app.put('/api/orders/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const { status } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
-      [status, id]
-    );
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    const index = data.orders.findIndex((order: any) => order.id === id);
+    if (index !== -1) {
+      data.orders[index].status = status;
+      saveData(data);
+      res.json(data.orders[index]);
     } else {
       res.status(404).json({ message: 'Order not found' });
     }
@@ -144,40 +156,49 @@ app.put('/api/orders/:id', async (req, res) => {
 });
 
 // Reservation endpoints
-app.get('/api/reservations', async (req, res) => {
+app.get('/api/reservations', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM reservations ORDER BY date, time');
-    res.json(result.rows);
+    res.json(data.reservations || []);
   } catch (error) {
     console.error('Error fetching reservations:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.post('/api/reservations', async (req, res) => {
+app.post('/api/reservations', (req, res) => {
   const { customer_name, customer_phone, customer_email, date, time, guests, special_requests } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO reservations (customer_name, customer_phone, customer_email, date, time, guests, special_requests, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [customer_name, customer_phone, customer_email, date, time, guests, special_requests, 'pending']
-    );
-    res.json(result.rows[0]);
+    const newReservation = {
+      id: Date.now(),
+      customer_name,
+      customer_phone,
+      customer_email,
+      date,
+      time,
+      guests,
+      special_requests,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    data.reservations.push(newReservation);
+    saveData(data);
+    res.json(newReservation);
   } catch (error) {
     console.error('Error creating reservation:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/reservations/:id', async (req, res) => {
+app.put('/api/reservations/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const { status, table_id } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE reservations SET status = COALESCE($1, status), table_id = COALESCE($2, table_id) WHERE id = $3 RETURNING *',
-      [status, table_id, id]
-    );
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    const index = data.reservations.findIndex((res: any) => res.id === id);
+    if (index !== -1) {
+      if (status) data.reservations[index].status = status;
+      if (table_id) data.reservations[index].table_id = table_id;
+      saveData(data);
+      res.json(data.reservations[index]);
     } else {
       res.status(404).json({ message: 'Reservation not found' });
     }
@@ -188,40 +209,43 @@ app.put('/api/reservations/:id', async (req, res) => {
 });
 
 // Table endpoints
-app.get('/api/tables', async (req, res) => {
+app.get('/api/tables', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tables ORDER BY table_number');
-    res.json(result.rows);
+    res.json(data.tables || []);
   } catch (error) {
     console.error('Error fetching tables:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.post('/api/tables', async (req, res) => {
+app.post('/api/tables', (req, res) => {
   const { table_number, capacity, location, available } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO tables (table_number, capacity, location, available) VALUES ($1, $2, $3, $4) RETURNING *',
-      [table_number, capacity, location, available ?? true]
-    );
-    res.json(result.rows[0]);
+    const newTable = {
+      id: Date.now(),
+      table_number,
+      capacity,
+      location,
+      available: available ?? true
+    };
+    data.tables.push(newTable);
+    saveData(data);
+    res.json(newTable);
   } catch (error) {
     console.error('Error creating table:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/tables/:id', async (req, res) => {
+app.put('/api/tables/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const { table_number, capacity, location, available } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE tables SET table_number = $1, capacity = $2, location = $3, available = $4 WHERE id = $5 RETURNING *',
-      [table_number, capacity, location, available, id]
-    );
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    const index = data.tables.findIndex((table: any) => table.id === id);
+    if (index !== -1) {
+      data.tables[index] = { ...data.tables[index], table_number, capacity, location, available };
+      saveData(data);
+      res.json(data.tables[index]);
     } else {
       res.status(404).json({ message: 'Table not found' });
     }
@@ -231,10 +255,11 @@ app.put('/api/tables/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/tables/:id', async (req, res) => {
+app.delete('/api/tables/:id', (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    await pool.query('DELETE FROM tables WHERE id = $1', [id]);
+    data.tables = data.tables.filter((table: any) => table.id !== id);
+    saveData(data);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting table:', error);
@@ -243,12 +268,10 @@ app.delete('/api/tables/:id', async (req, res) => {
 });
 
 // Review endpoints
-app.get('/api/reviews', async (req, res) => {
+app.get('/api/reviews', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM reviews ORDER BY created_at DESC');
-    const reviews = result.rows;
-    
-    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const reviews = data.reviews || [];
+    const totalRating = reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
     const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
     
     res.json({
@@ -262,30 +285,36 @@ app.get('/api/reviews', async (req, res) => {
   }
 });
 
-app.post('/api/reviews', async (req, res) => {
+app.post('/api/reviews', (req, res) => {
   const { customer_name, rating, review_text, image_url } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO reviews (customer_name, rating, review_text, image_url, approved) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [customer_name, rating, review_text, image_url, false]
-    );
-    res.json(result.rows[0]);
+    const newReview = {
+      id: Date.now(),
+      customer_name,
+      rating,
+      review_text,
+      image_url,
+      approved: false,
+      created_at: new Date().toISOString()
+    };
+    data.reviews.push(newReview);
+    saveData(data);
+    res.json(newReview);
   } catch (error) {
     console.error('Error creating review:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/reviews/:id', async (req, res) => {
+app.put('/api/reviews/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const { approved } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE reviews SET approved = $1 WHERE id = $2 RETURNING *',
-      [approved, id]
-    );
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    const index = data.reviews.findIndex((review: any) => review.id === id);
+    if (index !== -1) {
+      data.reviews[index].approved = approved;
+      saveData(data);
+      res.json(data.reviews[index]);
     } else {
       res.status(404).json({ message: 'Review not found' });
     }
@@ -295,10 +324,11 @@ app.put('/api/reviews/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/reviews/:id', async (req, res) => {
+app.delete('/api/reviews/:id', (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    await pool.query('DELETE FROM reviews WHERE id = $1', [id]);
+    data.reviews = data.reviews.filter((review: any) => review.id !== id);
+    saveData(data);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting review:', error);
@@ -307,24 +337,16 @@ app.delete('/api/reviews/:id', async (req, res) => {
 });
 
 // Admin data management endpoints
-app.get('/api/admin/data-info', async (req, res) => {
+app.get('/api/admin/data-info', (req, res) => {
   try {
-    const [menu, orders, reservations, tables, reviews] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM menu_items'),
-      pool.query('SELECT COUNT(*) FROM orders'),
-      pool.query('SELECT COUNT(*) FROM reservations'),
-      pool.query('SELECT COUNT(*) FROM tables'),
-      pool.query('SELECT COUNT(*) FROM reviews')
-    ]);
-
     res.json({
-      database: process.env.DB_NAME || 'athidhi_restaurant',
+      database: 'File-based storage',
       counts: {
-        menuItems: parseInt(menu.rows[0].count),
-        orders: parseInt(orders.rows[0].count),
-        reservations: parseInt(reservations.rows[0].count),
-        tables: parseInt(tables.rows[0].count),
-        reviews: parseInt(reviews.rows[0].count),
+        menuItems: data.menuItems?.length || 0,
+        orders: data.orders?.length || 0,
+        reservations: data.reservations?.length || 0,
+        tables: data.tables?.length || 0,
+        reviews: data.reviews?.length || 0,
       }
     });
   } catch (error) {
@@ -342,7 +364,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🗄️  Database: ${process.env.DB_NAME || 'athidhi_restaurant'}`);
+  console.log(`💾 Storage: File-based (${process.env.NODE_ENV === 'production' ? '/tmp' : 'local data folder'})`);
   if (process.env.NODE_ENV === 'production') {
     console.log(`📦 Serving frontend from dist folder\n`);
   }
