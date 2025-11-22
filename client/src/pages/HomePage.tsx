@@ -64,13 +64,13 @@ export default function HomePage() {
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
               <MapPin className="mx-auto mb-4 text-primary-600" size={40} />
               <h3 className="font-semibold text-lg mb-2">Location</h3>
-              <p className="text-gray-600">123 Main Street</p>
-              <p className="text-gray-600">City, State 12345</p>
+              <p className="text-gray-600">Sai Baba Circle, Dam Road</p>
+              <p className="text-gray-600">Hosapete, 583225</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
               <Phone className="mx-auto mb-4 text-primary-600" size={40} />
               <h3 className="font-semibold text-lg mb-2">Phone</h3>
-              <p className="text-gray-600">+1 (555) 123-4567</p>
+              <p className="text-gray-600">+91 9880967895</p>
               <p className="text-gray-600">Call for reservations</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
