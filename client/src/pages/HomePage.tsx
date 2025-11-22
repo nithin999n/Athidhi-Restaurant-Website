@@ -169,6 +169,29 @@ export default function HomePage() {
       {/* Content Section */}
       <div className="bg-white py-24">
         <div className="container mx-auto px-6 md:px-12">
+          
+          {/* Welcome Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="max-w-5xl mx-auto mb-20 text-center"
+          >
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-8">
+              Welcome to Athidhi Family Restaurant
+            </h2>
+            <div className="w-24 h-1 bg-primary-600 mx-auto mb-10"></div>
+            <div className="space-y-6 text-lg md:text-xl text-gray-700 leading-relaxed">
+              <p>
+                Your warm and welcoming destination for delicious food, genuine hospitality, and memorable dining in Hospet. Since our doors opened, our aim has been simple — to treat every guest like family and serve great food that keeps you coming back.
+              </p>
+              <p>
+                Nestled near Sai Baba Circle on TB Dam Road, we're proud to be a dining choice for locals, families, travellers and friends alike. With a spacious, air-conditioned dining room and a carefully crafted menu covering authentic Andhra-style non-veg specialties, North Indian fare, Chinese favourites, and vegetarian delights, we offer something for every palate.
+              </p>
+            </div>
+          </motion.div>
+
           <div className="max-w-6xl mx-auto">
             
             {/* Top Horizontal Bar - A Journey of Flavours */}
