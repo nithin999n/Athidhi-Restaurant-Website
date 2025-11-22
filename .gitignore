@@ -7,3 +7,5 @@ dist
 .DS_Store
 data/
 !data/.gitkeep
+client/public/uploads/
+!client/public/uploads/.gitkeep
