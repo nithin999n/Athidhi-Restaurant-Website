@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { LayoutDashboard, ShoppingBag, Calendar, Menu as MenuIcon, Table, Star, Database, LogOut, Menu, X, Code } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Menu as MenuIcon, Database, LogOut, Menu, X, Code } from 'lucide-react';
 
 export default function AdminNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,28 +35,10 @@ export default function AdminNavbar() {
                 <span>Orders</span>
               </a>
             </Link>
-            <Link href="/admin/reservations">
-              <a className="flex items-center gap-2 hover:text-gray-300 transition">
-                <Calendar size={20} />
-                <span>Reservations</span>
-              </a>
-            </Link>
             <Link href="/admin/menu">
               <a className="flex items-center gap-2 hover:text-gray-300 transition">
                 <MenuIcon size={20} />
                 <span>Menu</span>
-              </a>
-            </Link>
-            <Link href="/admin/tables">
-              <a className="flex items-center gap-2 hover:text-gray-300 transition">
-                <Table size={20} />
-                <span>Tables</span>
-              </a>
-            </Link>
-            <Link href="/admin/reviews">
-              <a className="flex items-center gap-2 hover:text-gray-300 transition">
-                <Star size={20} />
-                <span>Reviews</span>
               </a>
             </Link>
             <Link href="/admin/data">
@@ -95,28 +77,10 @@ export default function AdminNavbar() {
                 <span>Orders</span>
               </a>
             </Link>
-            <Link href="/admin/reservations">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
-                <Calendar size={20} />
-                <span>Reservations</span>
-              </a>
-            </Link>
             <Link href="/admin/menu">
               <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
                 <MenuIcon size={20} />
                 <span>Menu</span>
-              </a>
-            </Link>
-            <Link href="/admin/tables">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
-                <Table size={20} />
-                <span>Tables</span>
-              </a>
-            </Link>
-            <Link href="/admin/reviews">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
-                <Star size={20} />
-                <span>Reviews</span>
               </a>
             </Link>
             <Link href="/admin/data">

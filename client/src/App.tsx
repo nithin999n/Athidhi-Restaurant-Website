@@ -1,43 +1,39 @@
-import { Route, Switch } from 'wouter';
+import { Route, Switch, useLocation } from 'wouter';
+import { AnimatePresence } from 'framer-motion';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
 import OrderPage from './pages/OrderPage';
-import ReservationPage from './pages/ReservationPage';
-import ReviewsPage from './pages/ReviewsPage';
+import AboutPage from './pages/AboutPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
-import AdminReservations from './pages/admin/AdminReservations';
 import AdminMenu from './pages/admin/AdminMenu';
-import AdminTables from './pages/admin/AdminTables';
-import AdminReviews from './pages/admin/AdminReviews';
 import AdminDataManagement from './pages/admin/AdminDataManagement';
 import AdminRawData from './pages/admin/AdminRawData';
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/AdminNavbar';
 
 function App() {
-  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith('/admin');
 
   return (
     <div className="min-h-screen">
       {isAdminRoute ? <AdminNavbar /> : <Navbar />}
-      <Switch>
-        <Route path="/" component={HomePage} />
-        <Route path="/menu" component={MenuPage} />
-        <Route path="/order" component={OrderPage} />
-        <Route path="/reservation" component={ReservationPage} />
-        <Route path="/reviews" component={ReviewsPage} />
-        <Route path="/admin/login" component={AdminLogin} />
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/admin/orders" component={AdminOrders} />
-        <Route path="/admin/reservations" component={AdminReservations} />
-        <Route path="/admin/menu" component={AdminMenu} />
-        <Route path="/admin/tables" component={AdminTables} />
-        <Route path="/admin/reviews" component={AdminReviews} />
-        <Route path="/admin/data" component={AdminDataManagement} />
-        <Route path="/admin/raw-data" component={AdminRawData} />
-      </Switch>
+      <AnimatePresence mode="wait">
+        <Switch location={location}>
+          <Route path="/" component={HomePage} />
+          <Route path="/menu" component={MenuPage} />
+          <Route path="/order" component={OrderPage} />
+          <Route path="/about" component={AboutPage} />
+          <Route path="/admin/login" component={AdminLogin} />
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/orders" component={AdminOrders} />
+          <Route path="/admin/menu" component={AdminMenu} />
+          <Route path="/admin/data" component={AdminDataManagement} />
+          <Route path="/admin/raw-data" component={AdminRawData} />
+        </Switch>
+      </AnimatePresence>
     </div>
   );
 }

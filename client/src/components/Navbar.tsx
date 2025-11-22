@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { Home, Menu as MenuIcon, ShoppingCart, Calendar, Star, Menu, X } from 'lucide-react';
+import { Home, ShoppingCart, Menu, X, Info } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,28 +29,16 @@ export default function Navbar() {
                 <span>Home</span>
               </a>
             </Link>
-            <Link href="/menu">
-              <a className="flex items-center gap-2 hover:text-primary-200 transition">
-                <MenuIcon size={20} />
-                <span>Menu</span>
-              </a>
-            </Link>
             <Link href="/order">
               <a className="flex items-center gap-2 hover:text-primary-200 transition">
                 <ShoppingCart size={20} />
                 <span>Order Online</span>
               </a>
             </Link>
-            <Link href="/reservation">
+            <Link href="/about">
               <a className="flex items-center gap-2 hover:text-primary-200 transition">
-                <Calendar size={20} />
-                <span>Reserve Table</span>
-              </a>
-            </Link>
-            <Link href="/reviews">
-              <a className="flex items-center gap-2 hover:text-primary-200 transition">
-                <Star size={20} />
-                <span>Reviews</span>
+                <Info size={20} />
+                <span>About Us</span>
               </a>
             </Link>
           </div>
@@ -65,28 +53,16 @@ export default function Navbar() {
                 <span>Home</span>
               </a>
             </Link>
-            <Link href="/menu">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-primary-700 rounded transition flex items-center gap-2">
-                <MenuIcon size={20} />
-                <span>Menu</span>
-              </a>
-            </Link>
             <Link href="/order">
               <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-primary-700 rounded transition flex items-center gap-2">
                 <ShoppingCart size={20} />
                 <span>Order Online</span>
               </a>
             </Link>
-            <Link href="/reservation">
+            <Link href="/about">
               <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-primary-700 rounded transition flex items-center gap-2">
-                <Calendar size={20} />
-                <span>Reserve Table</span>
-              </a>
-            </Link>
-            <Link href="/reviews">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-primary-700 rounded transition flex items-center gap-2">
-                <Star size={20} />
-                <span>Reviews</span>
+                <Info size={20} />
+                <span>About Us</span>
               </a>
             </Link>
           </div>

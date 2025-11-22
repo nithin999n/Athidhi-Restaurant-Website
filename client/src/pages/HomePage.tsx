@@ -1,6 +1,4 @@
 import { Link } from 'wouter';
-import { Clock, MapPin, Phone, Mail, Star } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const foodImages = [
@@ -15,19 +13,6 @@ const foodImages = [
 ];
 
 export default function HomePage() {
-  const [reviewStats, setReviewStats] = useState({ overallRating: 0, totalReviews: 0 });
-
-  useEffect(() => {
-    fetch('/api/reviews')
-      .then(res => res.json())
-      .then(data => {
-        setReviewStats({
-          overallRating: data.overallRating,
-          totalReviews: data.reviews.filter((r: any) => r.approved).length
-        });
-      })
-      .catch(err => console.error('Error fetching reviews:', err));
-  }, []);
 
   return (
     <div className="min-h-screen">
@@ -168,95 +153,183 @@ export default function HomePage() {
                 Order Online
               </motion.a>
             </Link>
-            <Link href="/reservation">
+            <Link href="/menu">
               <motion.a 
                 className="bg-primary-800 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-900 transition"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Reserve Table
+                Menu
               </motion.a>
             </Link>
           </motion.div>
         </div>
       </div>
 
-      {/* About Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">About Us</h2>
-          <p className="text-gray-600 text-lg leading-relaxed">
-            Athidhi Family Restaurant brings you the finest dining experience with a perfect blend of 
-            traditional recipes and modern culinary techniques. Our commitment to quality ingredients 
-            and exceptional service makes every meal memorable.
-          </p>
-        </div>
-      </div>
+      {/* Content Section */}
+      <div className="bg-white py-24">
+        <div className="container mx-auto px-6 md:px-12">
+          <div className="max-w-6xl mx-auto">
+            
+            {/* Top Horizontal Bar - A Journey of Flavours */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="mb-16"
+            >
+              <h3 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-8 border-b-4 border-orange-500 pb-4 inline-block">
+                A Journey of Flavours
+              </h3>
+              <div className="mt-8 space-y-6">
+                <p className="text-lg md:text-xl text-gray-700 leading-relaxed">
+                  At Athidhi, food is prepared with passion. Our chefs bring together the rich culinary traditions of Andhra, North Indian, Chinese, and South Indian cuisines, offering something for everyone.
+                </p>
+                <p className="text-lg md:text-xl text-gray-700 leading-relaxed">
+                  From our signature spicy Andhra biryanis and flavourful curries to crisp Chinese starters and wholesome vegetarian meals, every dish is crafted with fresh ingredients and authentic recipes. Expect food that is aromatic, vibrant, and full of flavour.
+                </p>
+              </div>
+            </motion.div>
 
-      {/* Info Cards */}
-      <div className="bg-gray-50 py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <Clock className="mx-auto mb-4 text-primary-600" size={40} />
-              <h3 className="font-semibold text-lg mb-2">Opening Hours</h3>
-              <p className="text-gray-600">Mon - Sun</p>
-              <p className="text-gray-600">11:00 AM - 11:00 PM</p>
+            {/* Left Vertical Bar - Two Column Layout */}
+            <div className="grid md:grid-cols-2 gap-12 mb-16">
+              
+              {/* Left Column - Comfortable Interiors */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7 }}
+                viewport={{ once: true }}
+              >
+                <h3 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-6 border-l-4 border-blue-500 pl-6">
+                  Comfortable & Family-Friendly Interiors
+                </h3>
+                <div className="space-y-4 pl-6">
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    Step inside Athidhi and you'll find clean, well-maintained, air-conditioned interiors designed for families, groups, and travellers.
+                  </p>
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    The dining hall features spacious, comfortable seating with calm lighting and neat décor that creates a relaxed atmosphere. We maintain the highest standards of hygiene.
+                  </p>
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    It's the kind of place where families can dine peacefully, friends can meet over good food, and travellers can unwind after exploring Hampi.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Right Column - Hospitality */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <h3 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-6 border-l-4 border-green-500 pl-6">
+                  Our Commitment to Hospitality
+                </h3>
+                <div className="space-y-4 pl-6">
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    True to our name "Athidhi," meaning guest, we believe every visitor deserves warmth and care. Hospitality is the foundation of everything we do.
+                  </p>
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    Our team ensures quick and friendly service, personalized attention, and a smooth experience from the moment you walk in until you leave satisfied.
+                  </p>
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+                    Whether it's your first visit or your fiftieth, you'll always be welcomed with the same heartfelt hospitality.
+                  </p>
+                </div>
+              </motion.div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <MapPin className="mx-auto mb-4 text-primary-600" size={40} />
-              <h3 className="font-semibold text-lg mb-2">Location</h3>
-              <p className="text-gray-600">Sai Baba Circle, Dam Road</p>
-              <p className="text-gray-600">Hosapete, 583225</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <Phone className="mx-auto mb-4 text-primary-600" size={40} />
-              <h3 className="font-semibold text-lg mb-2">Phone</h3>
-              <p className="text-gray-600">+91 9880967895</p>
-              <p className="text-gray-600">Call for reservations</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <Mail className="mx-auto mb-4 text-primary-600" size={40} />
-              <h3 className="font-semibold text-lg mb-2">Email</h3>
-              <p className="text-gray-600">info@athidhi.com</p>
-              <p className="text-gray-600">We'd love to hear from you</p>
-            </div>
+
+            {/* Bottom Horizontal Bar - What Makes Us Special */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="mt-20"
+            >
+              <h3 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-8 border-b-4 border-primary-600 pb-4 inline-block">
+                What Makes Us Special
+              </h3>
+              <div className="mt-8 grid md:grid-cols-2 gap-x-12 gap-y-6">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Authentic Andhra-style flavours</span> that transport you to the heart of South India with every bite
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Wide menu selection</span> featuring both vegetarian and non-vegetarian options to suit every palate
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Clean and comfortable atmosphere</span> where families feel welcome and relaxed
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Friendly staff</span> who go above and beyond to ensure smooth, attentive service
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Convenient location</span> with ample parking and easy accessibility
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-4"
+                >
+                  <span className="text-primary-600 text-2xl font-bold mt-1">•</span>
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <span className="font-semibold text-gray-900">Perfect for Hampi travellers</span> seeking authentic local cuisine in a comfortable setting
+                  </p>
+                </motion.div>
+              </div>
+            </motion.div>
+
           </div>
-        </div>
-      </div>
-
-      {/* Reviews Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">What Our Customers Say</h2>
-          {reviewStats.totalReviews > 0 ? (
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <Star className="fill-yellow-400 text-yellow-400" size={32} />
-                <span className="text-4xl font-bold text-primary-600">
-                  {reviewStats.overallRating.toFixed(1)}
-                </span>
-              </div>
-              <div className="text-left">
-                <p className="text-gray-600">Based on {reviewStats.totalReviews} reviews</p>
-                <Link href="/reviews">
-                  <a className="text-primary-600 hover:text-primary-700 font-semibold">
-                    Read all reviews →
-                  </a>
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-600">Be the first to review us!</p>
-          )}
-        </div>
-
-        <div className="text-center">
-          <Link href="/reviews">
-            <a className="inline-block bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition">
-              View All Reviews & Write Your Own
-            </a>
-          </Link>
         </div>
       </div>
     </div>
