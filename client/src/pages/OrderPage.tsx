@@ -113,13 +113,22 @@ export default function OrderPage() {
     );
   }
 
+  // Get unique categories
+  const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  // Filter items by category
+  const filteredItems = selectedCategory === 'All' 
+    ? menuItems 
+    : menuItems.filter(item => item.category === selectedCategory);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">Order Online</h1>
           <p className="text-gray-600 text-lg">Delicious food delivered to your doorstep. Cash on Delivery only.</p>
@@ -128,10 +137,33 @@ export default function OrderPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Menu Items */}
           <div className="lg:col-span-2">
+            {/* Category Filter */}
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-3">
+                {categories.map(category => (
+                  <motion.button
+                    key={category}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-6 py-2.5 rounded-full font-semibold transition-all ${
+                      selectedCategory === category
+                        ? 'bg-primary-600 text-white shadow-lg'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {category}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Menu</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {selectedCategory === 'All' ? 'All Items' : selectedCategory}
+              </h2>
               <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium">
-                {menuItems.length} Items
+                {filteredItems.length} Items
               </span>
             </div>
 
@@ -139,58 +171,67 @@ export default function OrderPage() {
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
               </div>
-            ) : menuItems.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-                <p className="text-gray-500 text-lg">No items available right now.</p>
+                <p className="text-gray-500 text-lg">No items available in this category.</p>
               </div>
             ) : (
               <div className="grid gap-4">
                 <AnimatePresence>
-                  {menuItems.map((item, index) => (
+                  {filteredItems.map((item, index) => (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-4 flex gap-4 border border-gray-100"
+                      className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-gray-100 group"
                     >
-                      {/* Image */}
-                      {item.imageUrl && (
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.name}
-                            className="w-24 h-24 object-cover rounded-lg"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Content */}
-                      <div className="flex-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
-                            <span className="font-bold text-primary-600 text-lg sm:hidden">
-                              ₹{Number(item.price).toFixed(2)}
-                            </span>
+                      <div className="flex gap-4 p-4">
+                        {/* Image */}
+                        {item.imageUrl ? (
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.name}
+                              className="w-28 h-28 object-cover rounded-xl group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
                           </div>
-                          <p className="text-gray-500 text-sm mt-1">{item.description}</p>
-                          <p className="text-primary-600 font-bold mt-2 hidden sm:block">
-                            ₹{Number(item.price).toFixed(2)}
-                          </p>
+                        ) : (
+                          <div className="flex-shrink-0 w-28 h-28 bg-gradient-to-br from-primary-100 to-orange-100 rounded-xl flex items-center justify-center">
+                            <Utensils className="text-primary-400" size={40} />
+                          </div>
+                        )}
+                        
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-bold text-xl text-gray-900">{item.name}</h3>
+                              <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm font-bold">
+                                ₹{Number(item.price).toFixed(0)}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                              {item.category}
+                            </span>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => addToCart(item)}
+                              className="bg-primary-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
+                            >
+                              <Plus size={18} />
+                              Add to Cart
+                            </motion.button>
+                          </div>
                         </div>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => addToCart(item)}
-                          className="w-full sm:w-auto bg-white border-2 border-primary-600 text-primary-600 px-6 py-2 rounded-lg font-bold hover:bg-primary-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Plus size={18} />
-                          Add
-                        </motion.button>
                       </div>
                     </motion.div>
                   ))}
