@@ -8,11 +8,19 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = process.env.NODE_ENV === 'production'
     ? '/opt/render/project/src/data' // Render persistent disk
     : path.join(process.cwd(), 'data');
+console.log('📁 Data directory:', DATA_DIR);
+console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 // Ensure directory exists
 if (!fs.existsSync(DATA_DIR)) {
+    console.log('📂 Creating data directory...');
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log('✅ Data directory created');
+}
+else {
+    console.log('✅ Data directory exists');
 }
 const DB_PATH = path.join(DATA_DIR, 'restaurant.db');
+console.log('💾 Database path:', DB_PATH);
 // Create database connection
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL'); // Better performance

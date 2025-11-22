@@ -7,34 +7,13 @@ services:
     plan: free
     buildCommand: npm install --production=false && npm run build && npm run build:server
     startCommand: npm start
+    # CRITICAL: Persistent disk to prevent data loss on deployments
+    disk:
+      name: athidhi-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
     envVars:
-
       - key: PORT
         value: 3000
-      - key: DB_HOST
-        fromDatabase:
-          name: athidhi-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: athidhi-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: athidhi-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: athidhi-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: athidhi-db
-          property: password
-
-databases:
-  - name: athidhi-db
-    region: oregon
-    plan: free
-    databaseName: athidhi_restaurant
-    user: athidhi_user
+      - key: NODE_ENV
+        value: production
