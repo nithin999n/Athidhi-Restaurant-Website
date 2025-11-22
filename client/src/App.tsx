@@ -10,6 +10,7 @@ import AdminOrders from './pages/admin/AdminOrders';
 import AdminMenu from './pages/admin/AdminMenu';
 import AdminDataManagement from './pages/admin/AdminDataManagement';
 import AdminRawData from './pages/admin/AdminRawData';
+import AdminChangePassword from './pages/admin/AdminChangePassword';
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/AdminNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -51,6 +52,11 @@ function App() {
           <Route path="/admin/raw-data">
             <ProtectedRoute>
               <AdminRawData />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/change-password">
+            <ProtectedRoute>
+              <AdminChangePassword />
             </ProtectedRoute>
           </Route>
         </Switch>

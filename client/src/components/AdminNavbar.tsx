@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, ShoppingBag, Menu as MenuIcon, Database, LogOut, Menu, X, Code } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Menu as MenuIcon, Database, LogOut, Menu, X, Code, Key } from 'lucide-react';
 
 export default function AdminNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,6 +68,12 @@ export default function AdminNavbar() {
                 <span>Raw Data</span>
               </a>
             </Link>
+            <Link href="/admin/change-password">
+              <a className="flex items-center gap-2 hover:text-gray-300 transition">
+                <Key size={20} />
+                <span>Password</span>
+              </a>
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 hover:text-gray-300 transition"
@@ -109,6 +115,12 @@ export default function AdminNavbar() {
               <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
                 <Code size={20} />
                 <span>Raw Data</span>
+              </a>
+            </Link>
+            <Link href="/admin/change-password">
+              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
+                <Key size={20} />
+                <span>Change Password</span>
               </a>
             </Link>
             <button
