@@ -12,6 +12,7 @@ import AdminDataManagement from './pages/admin/AdminDataManagement';
 import AdminRawData from './pages/admin/AdminRawData';
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/AdminNavbar';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const [location] = useLocation();
@@ -27,11 +28,31 @@ function App() {
           <Route path="/order" component={OrderPage} />
           <Route path="/about" component={AboutPage} />
           <Route path="/admin/login" component={AdminLogin} />
-          <Route path="/admin" component={AdminDashboard} />
-          <Route path="/admin/orders" component={AdminOrders} />
-          <Route path="/admin/menu" component={AdminMenu} />
-          <Route path="/admin/data" component={AdminDataManagement} />
-          <Route path="/admin/raw-data" component={AdminRawData} />
+          <Route path="/admin">
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/orders">
+            <ProtectedRoute>
+              <AdminOrders />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/menu">
+            <ProtectedRoute>
+              <AdminMenu />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/data">
+            <ProtectedRoute>
+              <AdminDataManagement />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/raw-data">
+            <ProtectedRoute>
+              <AdminRawData />
+            </ProtectedRoute>
+          </Route>
         </Switch>
       </AnimatePresence>
     </div>

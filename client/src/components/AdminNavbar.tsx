@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { LayoutDashboard, ShoppingBag, Menu as MenuIcon, Database, LogOut, Menu, X, Code } from 'lucide-react';
 
 export default function AdminNavbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    setLocation('/admin/login');
+  };
 
   return (
     <nav className="bg-gray-800 text-white shadow-lg">
@@ -62,12 +68,13 @@ export default function AdminNavbar() {
                 <span>Raw Data</span>
               </a>
             </Link>
-            <Link href="/">
-              <a className="flex items-center gap-2 hover:text-gray-300 transition">
-                <LogOut size={20} />
-                <span>Exit</span>
-              </a>
-            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 hover:text-gray-300 transition"
+            >
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
@@ -104,12 +111,13 @@ export default function AdminNavbar() {
                 <span>Raw Data</span>
               </a>
             </Link>
-            <Link href="/">
-              <a onClick={() => setIsOpen(false)} className="block px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2">
-                <LogOut size={20} />
-                <span>Exit</span>
-              </a>
-            </Link>
+            <button
+              onClick={() => { setIsOpen(false); handleLogout(); }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-700 rounded transition flex items-center gap-2"
+            >
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
           </div>
         )}
       </div>

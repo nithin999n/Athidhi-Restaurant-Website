@@ -116,7 +116,7 @@ export default function OrderPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -100, scale: 0.8 }}
             transition={{ type: "spring", duration: 0.6 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+            className="fixed top-4 sm:top-24 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 sm:w-full sm:max-w-md"
           >
             <motion.div
               animate={{ 
@@ -127,33 +127,33 @@ export default function OrderPage() {
                 ]
               }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="bg-white rounded-2xl p-6 shadow-2xl border-2 border-green-500"
+              className="bg-white rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-green-500"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <motion.div
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 0.5, repeat: 3 }}
-                  className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center"
+                  className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center"
                 >
-                  <Utensils className="text-white" size={28} />
+                  <Utensils className="text-white" size={24} />
                 </motion.div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">Order Placed Successfully!</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1">Order Placed Successfully!</h3>
+                  <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
                     Thank you for your order. We'll contact you shortly to confirm your delivery.
                   </p>
                   <motion.div
                     initial={{ width: "100%" }}
                     animate={{ width: "0%" }}
                     transition={{ duration: 7, ease: "linear" }}
-                    className="h-1 bg-green-500 rounded-full mt-3"
+                    className="h-1 bg-green-500 rounded-full mt-2 sm:mt-3"
                   />
                 </div>
                 <button
                   onClick={() => setOrderPlaced(false)}
-                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1"
                 >
-                  <X size={20} />
+                  <X size={18} className="sm:w-5 sm:h-5" />
                 </button>
               </div>
             </motion.div>
