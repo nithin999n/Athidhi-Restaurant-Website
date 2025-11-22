@@ -1,4 +1,3 @@
-import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -10,58 +9,70 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-// Configure Cloudinary (if credentials are available)
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
-const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+// Check which upload service to use
+const imgbbApiKey = process.env.IMGBB_API_KEY?.trim();
+const useImgBB = !!(imgbbApiKey && imgbbApiKey.length > 0);
 
-const useCloudinary = !!(cloudName && apiKey && apiSecret && cloudName.length > 0);
-
-if (useCloudinary) {
-  cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret
-  });
-  console.log('✅ Cloudinary configured');
+if (useImgBB) {
+  console.log('✅ ImgBB configured for image uploads');
 } else {
-  console.log('⚠️  Cloudinary not configured, using local storage for images');
+  console.log('⚠️  ImgBB not configured, using local storage for images');
 }
 
 // Multer config
 const storage = multer.memoryStorage();
 export const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 32 * 1024 * 1024 }, // 32MB limit (ImgBB max)
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'));
+      cb(new Error('Invalid file type. Only JPEG, PNG, WebP and GIF are allowed.'));
     }
   }
 });
 
-// Upload helper
-export const uploadToCloudinary = async (fileBuffer: Buffer, filename: string = 'image'): Promise<string> => {
-  // If Cloudinary is configured, use it
-  if (useCloudinary) {
-    return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'athidhi-restaurant' },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary Upload Error:', error);
-            reject(error);
-          } else {
-            console.log('Cloudinary Upload Success:', result?.secure_url);
-            resolve(result?.secure_url || '');
-          }
-        }
-      );
-      uploadStream.end(fileBuffer);
+// Upload to ImgBB
+const uploadToImgBB = async (fileBuffer: Buffer): Promise<string> => {
+  try {
+    const base64Image = fileBuffer.toString('base64');
+    
+    const formData = new URLSearchParams();
+    formData.append('key', imgbbApiKey!);
+    formData.append('image', base64Image);
+    
+    const response = await fetch('https://api.imgbb.com/1/upload', {
+      method: 'POST',
+      body: formData,
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ImgBB Upload Error:', errorText);
+      throw new Error('ImgBB upload failed');
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.data?.url) {
+      console.log('✅ ImgBB upload success:', data.data.url);
+      return data.data.url;
+    } else {
+      throw new Error('ImgBB response invalid');
+    }
+  } catch (error) {
+    console.error('ImgBB upload error:', error);
+    throw error;
+  }
+};
+
+// Upload helper (main function)
+export const uploadToCloudinary = async (fileBuffer: Buffer, filename: string = 'image'): Promise<string> => {
+  // If ImgBB is configured, use it
+  if (useImgBB) {
+    return await uploadToImgBB(fileBuffer);
   }
   
   // Otherwise, save locally
