@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Utensils } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Utensils, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MenuItem {
@@ -87,31 +87,15 @@ export default function OrderPage() {
     }
   };
 
-  if (orderPlaced) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center min-h-screen flex items-center justify-center">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full bg-green-50 border-2 border-green-500 rounded-2xl p-8 shadow-xl"
-        >
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Utensils className="text-green-600" size={40} />
-          </div>
-          <h2 className="text-3xl font-bold text-green-800 mb-4">Order Placed!</h2>
-          <p className="text-green-700 mb-8 text-lg">
-            Thank you for your order. We'll contact you shortly to confirm.
-          </p>
-          <button
-            onClick={() => setOrderPlaced(false)}
-            className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors w-full"
-          >
-            Place Another Order
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+  // Auto-dismiss success notification after 7 seconds
+  useEffect(() => {
+    if (orderPlaced) {
+      const timer = setTimeout(() => {
+        setOrderPlaced(false);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [orderPlaced]);
 
   // Get unique categories
   const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
@@ -124,6 +108,59 @@ export default function OrderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Success Toast Notification */}
+      <AnimatePresence>
+        {orderPlaced && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -100, scale: 0.8 }}
+            transition={{ type: "spring", duration: 0.6 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+          >
+            <motion.div
+              animate={{ 
+                boxShadow: [
+                  "0 10px 40px rgba(34, 197, 94, 0.3)",
+                  "0 10px 60px rgba(34, 197, 94, 0.5)",
+                  "0 10px 40px rgba(34, 197, 94, 0.3)"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="bg-white rounded-2xl p-6 shadow-2xl border-2 border-green-500"
+            >
+              <div className="flex items-start gap-4">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 0.5, repeat: 3 }}
+                  className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center"
+                >
+                  <Utensils className="text-white" size={28} />
+                </motion.div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">Order Placed Successfully!</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Thank you for your order. We'll contact you shortly to confirm your delivery.
+                  </p>
+                  <motion.div
+                    initial={{ width: "100%" }}
+                    animate={{ width: "0%" }}
+                    transition={{ duration: 7, ease: "linear" }}
+                    className="h-1 bg-green-500 rounded-full mt-3"
+                  />
+                </div>
+                <button
+                  onClick={() => setOrderPlaced(false)}
+                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
