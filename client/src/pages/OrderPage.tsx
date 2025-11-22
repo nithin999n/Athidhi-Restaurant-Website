@@ -8,6 +8,7 @@ interface MenuItem {
   description: string;
   price: number;
   category: string;
+  imageUrl?: string;
   available: boolean;
 }
 
@@ -151,29 +152,46 @@ export default function OrderPage() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-100"
+                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-4 flex gap-4 border border-gray-100"
                     >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
-                          <span className="font-bold text-primary-600 text-lg sm:hidden">
-                            ₹{Number(item.price).toFixed(2)}
-                          </span>
+                      {/* Image */}
+                      {item.imageUrl && (
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.name}
+                            className="w-24 h-24 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         </div>
-                        <p className="text-gray-500 text-sm mt-1">{item.description}</p>
-                        <p className="text-primary-600 font-bold mt-2 hidden sm:block">
-                          ₹{Number(item.price).toFixed(2)}
-                        </p>
+                      )}
+                      
+                      {/* Content */}
+                      <div className="flex-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
+                            <span className="font-bold text-primary-600 text-lg sm:hidden">
+                              ₹{Number(item.price).toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="text-gray-500 text-sm mt-1">{item.description}</p>
+                          <p className="text-primary-600 font-bold mt-2 hidden sm:block">
+                            ₹{Number(item.price).toFixed(2)}
+                          </p>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => addToCart(item)}
+                          className="w-full sm:w-auto bg-white border-2 border-primary-600 text-primary-600 px-6 py-2 rounded-lg font-bold hover:bg-primary-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Plus size={18} />
+                          Add
+                        </motion.button>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => addToCart(item)}
-                        className="w-full sm:w-auto bg-white border-2 border-primary-600 text-primary-600 px-6 py-2 rounded-lg font-bold hover:bg-primary-50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Plus size={18} />
-                        Add
-                      </motion.button>
                     </motion.div>
                   ))}
                 </AnimatePresence>

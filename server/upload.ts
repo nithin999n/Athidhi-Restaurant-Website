@@ -11,17 +11,21 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 // Configure Cloudinary (if credentials are available)
-const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+const useCloudinary = !!(cloudName && apiKey && apiSecret && cloudName.length > 0);
 
 if (useCloudinary) {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret
   });
   console.log('✅ Cloudinary configured');
 } else {
-  console.log('⚠️  Cloudinary not configured, using local storage');
+  console.log('⚠️  Cloudinary not configured, using local storage for images');
 }
 
 // Multer config
