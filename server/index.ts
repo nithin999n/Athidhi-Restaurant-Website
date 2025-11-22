@@ -31,11 +31,27 @@ app.use(express.json());
 initDatabase();
 
 // Create default admin if not exists
-const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-if (userCount.count === 0) {
-  const hashedPassword = bcrypt.hashSync('admin123', 10);
-  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
-  console.log('👤 Default admin user created (admin/admin123)');
+try {
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+  console.log('📊 Current user count:', userCount.count);
+  
+  if (userCount.count === 0) {
+    const hashedPassword = bcrypt.hashSync('admin123', 10);
+    db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
+    console.log('👤 Default admin user created (admin/admin123)');
+  } else {
+    const adminUser = db.prepare('SELECT username FROM users WHERE username = ?').get('admin') as any;
+    if (adminUser) {
+      console.log('✅ Admin user exists');
+    } else {
+      console.log('⚠️  No admin user found, creating one...');
+      const hashedPassword = bcrypt.hashSync('admin123', 10);
+      db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
+      console.log('👤 Admin user created (admin/admin123)');
+    }
+  }
+} catch (error) {
+  console.error('❌ Error checking/creating admin user:', error);
 }
 
 // Serve static files
@@ -63,17 +79,23 @@ const authenticateToken = (req: any, res: any, next: any) => {
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
   try {
+    console.log('🔐 Login attempt for username:', username);
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
     if (!user) {
+      console.log('❌ User not found:', username);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+    console.log('✅ User found, checking password...');
     const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) {
+      console.log('❌ Password mismatch');
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+    console.log('✅ Login successful');
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ success: true, token });
   } catch (error) {
+    console.error('❌ Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -503,12 +525,16 @@ app.get('/api/admin/stats', authenticateToken, (req, res) => {
     const { startDate, endDate } = req.query;
     
     let dateFilter = '';
+    let statusFilter = '';
     if (startDate && endDate) {
       dateFilter = `WHERE created_at >= '${startDate}' AND created_at <= '${endDate}'`;
+      statusFilter = `AND status != 'cancelled'`;
+    } else {
+      statusFilter = `WHERE status != 'cancelled'`;
     }
 
     const ordersResult = db.prepare(`SELECT COUNT(*) as count FROM orders ${dateFilter}`).get() as any;
-    const revenueResult = db.prepare(`SELECT SUM(total_amount) as total FROM orders ${dateFilter} AND status != 'cancelled'`).get() as any;
+    const revenueResult = db.prepare(`SELECT SUM(total_amount) as total FROM orders ${dateFilter} ${statusFilter}`.replace('WHERE AND', 'WHERE')).get() as any;
     const reviewsResult = db.prepare(`SELECT COUNT(*) as count, AVG(rating) as avg FROM reviews ${dateFilter}`).get() as any;
 
     res.json({
@@ -518,6 +544,7 @@ app.get('/api/admin/stats', authenticateToken, (req, res) => {
       averageRating: reviewsResult.avg || 0
     });
   } catch (error) {
+    console.error('Stats error:', error);
     res.status(500).json({ message: 'Error fetching stats' });
   }
 });

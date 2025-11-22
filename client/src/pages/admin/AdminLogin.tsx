@@ -15,21 +15,25 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
+      console.log('Attempting login with:', credentials.username);
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (data.success) {
         localStorage.setItem('adminToken', data.token);
         setLocation('/admin');
       } else {
-        setError('Invalid username or password');
+        setError(data.message || 'Invalid username or password');
       }
     } catch (error) {
+      console.error('Login error:', error);
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
