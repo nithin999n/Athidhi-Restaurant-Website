@@ -82,12 +82,29 @@ app.post('/api/admin/login', (req, res) => {
 
 app.post('/api/upload', authenticateToken, upload.single('image'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    console.log('📥 Upload request received');
+    
+    if (!req.file) {
+      console.error('❌ No file in request');
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    console.log('📥 File received:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.buffer.length
+    });
+    
     const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+    console.log('✅ Upload complete, returning URL:', imageUrl);
     res.json({ url: imageUrl });
   } catch (error: any) {
-    console.error('Upload error:', error);
-    res.status(500).json({ message: 'Upload failed', error: error.message });
+    console.error('❌ Upload endpoint error:', error);
+    res.status(500).json({ 
+      message: 'Upload failed', 
+      error: error.message || 'Unknown error',
+      details: error.stack
+    });
   }
 });
 

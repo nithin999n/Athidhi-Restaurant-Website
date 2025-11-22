@@ -2,6 +2,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,53 +35,88 @@ export const upload = multer({
   }
 });
 
-// Upload to ImgBB
+// Upload to ImgBB using https module
 const uploadToImgBB = async (fileBuffer: Buffer): Promise<string> => {
-  try {
-    const base64Image = fileBuffer.toString('base64');
-    
-    const formData = new URLSearchParams();
-    formData.append('key', imgbbApiKey!);
-    formData.append('image', base64Image);
-    
-    const response = await fetch('https://api.imgbb.com/1/upload', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ImgBB Upload Error:', errorText);
-      throw new Error('ImgBB upload failed');
+  return new Promise((resolve, reject) => {
+    try {
+      const base64Image = fileBuffer.toString('base64');
+      const formData = `key=${encodeURIComponent(imgbbApiKey!)}&image=${encodeURIComponent(base64Image)}`;
+      
+      const options = {
+        hostname: 'api.imgbb.com',
+        path: '/1/upload',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(formData)
+        }
+      };
+      
+      const req = https.request(options, (res: any) => {
+        let data = '';
+        
+        res.on('data', (chunk: any) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          try {
+            const jsonData = JSON.parse(data);
+            if (jsonData.success && jsonData.data?.url) {
+              console.log('✅ ImgBB upload success:', jsonData.data.url);
+              resolve(jsonData.data.url);
+            } else {
+              console.error('ImgBB error:', jsonData);
+              reject(new Error('ImgBB upload failed'));
+            }
+          } catch (error) {
+            console.error('ImgBB parse error:', error);
+            reject(error);
+          }
+        });
+      });
+      
+      req.on('error', (error: any) => {
+        console.error('ImgBB request error:', error);
+        reject(error);
+      });
+      
+      req.write(formData);
+      req.end();
+    } catch (error) {
+      console.error('ImgBB upload error:', error);
+      reject(error);
     }
-    
-    const data = await response.json();
-    
-    if (data.success && data.data?.url) {
-      console.log('✅ ImgBB upload success:', data.data.url);
-      return data.data.url;
-    } else {
-      throw new Error('ImgBB response invalid');
-    }
-  } catch (error) {
-    console.error('ImgBB upload error:', error);
-    throw error;
-  }
+  });
 };
 
 // Upload helper (main function)
 export const uploadToCloudinary = async (fileBuffer: Buffer, filename: string = 'image'): Promise<string> => {
+  console.log('📤 Upload started, file size:', fileBuffer.length, 'bytes');
+  console.log('📤 Using ImgBB:', useImgBB);
+  
   // If ImgBB is configured, use it
   if (useImgBB) {
-    return await uploadToImgBB(fileBuffer);
+    try {
+      console.log('📤 Attempting ImgBB upload...');
+      const url = await uploadToImgBB(fileBuffer);
+      console.log('✅ ImgBB upload complete:', url);
+      return url;
+    } catch (error) {
+      console.error('❌ ImgBB upload failed:', error);
+      console.log('⚠️  Falling back to local storage...');
+      // Fall through to local storage
+    }
   }
   
-  // Otherwise, save locally
+  // Otherwise, save locally (or fallback)
   try {
+    console.log('📤 Attempting local storage upload...');
     const uploadsDir = path.join(__dirname, '../client/public/uploads');
     
     // Create uploads directory if it doesn't exist
     if (!fs.existsSync(uploadsDir)) {
+      console.log('📁 Creating uploads directory:', uploadsDir);
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
     
@@ -98,7 +134,7 @@ export const uploadToCloudinary = async (fileBuffer: Buffer, filename: string = 
     console.log('✅ Local upload success:', publicUrl);
     return publicUrl;
   } catch (error) {
-    console.error('Local upload error:', error);
-    throw error;
+    console.error('❌ Local upload error:', error);
+    throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
