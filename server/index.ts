@@ -421,6 +421,41 @@ app.delete('/api/reviews/:id', authenticateToken, (req, res) => {
   }
 });
 
+// --- RAW DATA VIEWER ---
+
+app.get('/api/admin/raw-data', authenticateToken, (req, res) => {
+  try {
+    const menuItems = db.prepare('SELECT * FROM menu_items').all();
+    const orders = db.prepare('SELECT * FROM orders').all();
+    const reservations = db.prepare('SELECT * FROM reservations').all();
+    const reviews = db.prepare('SELECT * FROM reviews').all();
+    const tables = db.prepare('SELECT * FROM tables').all();
+    const users = db.prepare('SELECT id, username, created_at FROM users').all(); // Don't expose passwords
+    
+    res.json({
+      database_file: '/opt/render/project/src/data/restaurant.db',
+      tables: {
+        menu_items: menuItems,
+        orders: orders,
+        reservations: reservations,
+        reviews: reviews,
+        tables: tables,
+        users: users
+      },
+      counts: {
+        menu_items: menuItems.length,
+        orders: orders.length,
+        reservations: reservations.length,
+        reviews: reviews.length,
+        tables: tables.length,
+        users: users.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching raw data' });
+  }
+});
+
 // --- STATS ROUTE ---
 
 app.get('/api/admin/stats', authenticateToken, (req, res) => {

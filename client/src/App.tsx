@@ -12,6 +12,7 @@ import AdminMenu from './pages/admin/AdminMenu';
 import AdminTables from './pages/admin/AdminTables';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminDataManagement from './pages/admin/AdminDataManagement';
+import AdminRawData from './pages/admin/AdminRawData';
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/AdminNavbar';
 
@@ -35,6 +36,7 @@ function App() {
         <Route path="/admin/tables" component={AdminTables} />
         <Route path="/admin/reviews" component={AdminReviews} />
         <Route path="/admin/data" component={AdminDataManagement} />
+        <Route path="/admin/raw-data" component={AdminRawData} />
       </Switch>
     </div>
   );
