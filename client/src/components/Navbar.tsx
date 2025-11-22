@@ -10,7 +10,16 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/">
-            <a className="text-2xl font-bold">Athidhi Family Restaurant</a>
+            <a className="flex items-center gap-3">
+              <div className="h-14 w-14 bg-white rounded-full p-1 shadow-lg flex items-center justify-center">
+                <img 
+                  src="/logo.jpeg" 
+                  alt="Athidhi Restaurant Logo" 
+                  className="h-full w-full object-cover rounded-full"
+                />
+              </div>
+              <span className="text-2xl font-bold">Athidhi Restaurant</span>
+            </a>
           </Link>
 
           {/* Mobile Menu Button */}

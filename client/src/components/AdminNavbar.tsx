@@ -10,7 +10,16 @@ export default function AdminNavbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/admin">
-            <a className="text-xl font-bold">Admin Portal</a>
+            <a className="flex items-center gap-3">
+              <div className="h-12 w-12 bg-white rounded-full p-1 shadow-lg flex items-center justify-center">
+                <img 
+                  src="/logo.jpeg" 
+                  alt="Athidhi Restaurant Logo" 
+                  className="h-full w-full object-cover rounded-full"
+                />
+              </div>
+              <span className="text-xl font-bold">Admin Portal</span>
+            </a>
           </Link>
 
           {/* Mobile Menu Button */}
